@@ -14,6 +14,12 @@ class QAStrategy(QA_Thread):
         self.user = QA_User(username=user, password=password)
         self.portfolio = self.user.new_portfolio(portfolio)
 
+        self.spms_id = spms_id
+
+
+
+
+
         if running_environment == RUNNING_ENVIRONMENT.BACKETEST:
             self.account = self.portfolio.new_account(
                 account_cookie=account_cookie, init_cash=init_cash, market_type=market_type)
