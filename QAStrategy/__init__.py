@@ -39,7 +39,7 @@ def QA_data_futuremin_resample(min_data,  type_='5min'):
     return resx.dropna().reset_index().set_index(['datetime', 'code'])
 
 
-class QAStrategyHandler():
+class QAStrategyBase():
     def __init__(self, code='rb1905', account_cookie='106184', dtype='1min',
                  data_host='192.168.2.21', data_port=5672, data_user='admin', data_password='admin',
                  trade_host='192.168.2.21', trade_port=5672, trade_user='admin', trade_password='admin',
@@ -283,7 +283,6 @@ class QAStrategyHandler():
     def update_account(self):
         QA.QA_util_log_info('{} UPDATE ACCOUNT'.format(
             str(datetime.datetime.now())))
-        #['positions'].get('{}.{}'.format(self.get_exchange(self.xcode), self.xcode.lower()), False)
         _t = self.client.find_one({'account_cookie': self.account_cookie})
         print(_t)
         self.accounts = _t['accounts']
