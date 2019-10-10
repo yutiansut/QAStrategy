@@ -14,22 +14,22 @@ import QUANTAXIS as QA
 from QAPUBSUB.consumer import subscriber, subscriber_routing
 from QAPUBSUB.producer import publisher_routing
 from QAStrategy.util import QA_data_futuremin_resample
+from QIFIAccount import ORDER_DIRECTION, QIFI_Account
 from QUANTAXIS.QAARP import QA_User
 from QUANTAXIS.QAEngine.QAThreadEngine import QA_Thread
 from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
-from QIFIAccount import QIFI_Account, ORDER_DIRECTION
 
 
 class QAStrategyCTABase():
-    def __init__(self, code='rb1905', dtype='1min', strategy_id='QA_STRATEGY',
+    def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY',
                  data_host='127.0.0.1', data_port=5672, data_user='admin', data_password='admin',
                  trade_host='127.0.0.1', trade_port=5672, trade_user='admin', trade_password='admin',
                  taskid=None, mongouri='mongodb://127.0.0.1:27017'):
 
         self.trade_host = trade_host
 
-        self.xcode = code
-        self.dtype = dtype
+        self.code = code
+        self.frequence = frequence
 
         self.market_preset = QA.QAARP.MARKET_PRESET()
         self._market_data = []
@@ -40,11 +40,11 @@ class QAStrategyCTABase():
             username=strategy_id, password=strategy_id, )
 
         self._old_data = QA.QA_fetch_get_future_min('tdx', code.upper(), QA.QA_util_get_last_day(
-            QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), dtype).set_index(['datetime', 'code'])
+            QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), frequence).set_index(['datetime', 'code'])
         self._old_data = self._old_data.assign(volume=self._old_data.trade).loc[:, [
             'open', 'high', 'low', 'close', 'volume']]
 
-        self.subscribe_data(code.lower(), dtype, data_host,
+        self.subscribe_data(code.lower(), frequence, data_host,
                             data_port, data_user, data_password)
 
         self.pub = publisher_routing(exchange='QAORDER_ROUTER', host=trade_host,
@@ -62,9 +62,9 @@ class QAStrategyCTABase():
         """需要一个单独的线程 daemon=True 更新账户
         
         """
-        self.account_thread = threading.Thread(
-            target=self.update_account, daemon=True)
-        self.account_thread.start()
+        # self.account_thread = threading.Thread(
+        #     target=self.update_account, daemon=True)
+        # self.account_thread.start()
 
         """account 类
 
@@ -78,16 +78,16 @@ class QAStrategyCTABase():
             {'strategy_id': self.strategy_id, 'taskid': taskid,
              'filepath': os.path.abspath(__file__), 'status': 200}, upsert=True)
 
-    def subscribe_data(self, code, dtype, data_host, data_port, data_user, data_password):
+    def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
         """[summary]
 
         Arguments:
             code {[type]} -- [description]
-            dtype {[type]} -- [description]
+            frequence {[type]} -- [description]
         """
 
-        self.sub = subscriber(exchange='realtime_min_{}'.format(
-            code), host=data_host, port=data_port, user=data_user, password=data_password)
+        self.sub = subscriber(exchange='realtime_{}_{}'.format(
+            frequence, code), host=data_host, port=data_port, user=data_user, password=data_password)
         self.sub.callback = self.callback
 
     @property
@@ -114,12 +114,12 @@ class QAStrategyCTABase():
         if self.isupdate:
             self.update()
             self.isupdate = False
-        self.update_account(new_bar['close'])
+        self.update_account()
         self.on_bar()
 
     def ind2str(self, ind, ind_type):
         z = ind.tail(1).reset_index().to_dict(orient='records')[0]
-        return json.dumps({'topic': ind_type, 'code': self.xcode, 'type': self.dtype, 'data': z})
+        return json.dumps({'topic': ind_type, 'code': self.code, 'type': self.frequence, 'data': z})
 
     def callback(self, a, b, c, body):
         """在strategy的callback中,我们需要的是
@@ -140,6 +140,7 @@ class QAStrategyCTABase():
 
         if self.new_data['datetime'][-9:] == '00.000000':
             self.isupdate = True
+        self.qifiacc.on_price_change(self.code, self.new_data['close'])
         bar = pd.DataFrame([self.new_data]).set_index(['datetime', 'code']
                                                       ).loc[:, ['open', 'high', 'low', 'close', 'volume']]
         now = datetime.datetime.now()
@@ -228,7 +229,7 @@ class QAStrategyCTABase():
             towards = eval('ORDER_DIRECTION.{}_{}'.format(direction, offset))
 
             order = self.qifiacc.send_order(
-                code=self.xcode, towards=towards, price=price, amount=volume, order_id=order_id)
+                code=self.code, towards=towards, price=price, amount=volume, order_id=order_id)
             order['topic'] = 'send_order'
             self.pub.pub(
                 json.dumps(order), routing_key=self.strategy_id)
@@ -248,21 +249,20 @@ class QAStrategyCTABase():
                     requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&\
                                 strategy_id={}&realaccount={}&code={}&order_direction={}&\
                                 order_offset={}&price={}&volume={}&order_time={}'.format(
-                        user, "xiadan_report", self.strategy_id, self.strategy_id, self.xcode.lower(), direction, offset, price, volume, now))
+                        user, "xiadan_report", self.strategy_id, self.strategy_id, self.code.lower(), direction, offset, price, volume, now))
             except Exception as e:
                 QA.QA_util_log_info(e)
 
         else:
             QA.QA_util_log_info('failed in ORDER_CHECK')
 
-    def update_account(self, price):
+    def update_account(self):
         QA.QA_util_log_info('{} UPDATE ACCOUNT'.format(
             str(datetime.datetime.now())))
 
-        self.qifiacc.on_price_change(self.xcode, price)
         self.accounts = self.qifiacc.account_msg
         self.orders = self.qifiacc.orders
-        self.positions = self.qifiacc.get_position(self.xcode)
+        self.positions = self.qifiacc.get_position(self.code)
         self.trades = self.qifiacc.trades
         self.updatetime = self.qifiacc.dtstr
 
@@ -277,6 +277,12 @@ class QAStrategyCTABase():
         self.update_account()
         return self.accounts.get('available', '')
 
-    def start(self):
+    def run(self):
+
+        self.sub.start()
         while True:
-            self.sub.start()
+            pass
+
+
+if __name__ == '__main__':
+    QAStrategyCTABase(code='RB2001').run()
