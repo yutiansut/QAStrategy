@@ -4,6 +4,7 @@ import os
 import sys
 import threading
 import time
+import uuid
 
 import pandas as pd
 import pymongo
@@ -20,17 +21,23 @@ from QIFIAccount import QIFI_Account, ORDER_DIRECTION
 
 
 class QAStrategyCTABase():
-    def __init__(self, code='rb1905', account_cookie='106184', dtype='1min',
+    def __init__(self, code='rb1905', dtype='1min', strategy_id='QA_STRATEGY',
                  data_host='127.0.0.1', data_port=5672, data_user='admin', data_password='admin',
                  trade_host='127.0.0.1', trade_port=5672, trade_user='admin', trade_password='admin',
-                 strategy_id='QA_STRATEGY', taskid=None,
-                 mongouri='mongodb://127.0.0.1:27017'):
+                 taskid=None, mongouri='mongodb://127.0.0.1:27017'):
 
         self.trade_host = trade_host
+
         self.xcode = code
         self.dtype = dtype
+
         self.market_preset = QA.QAARP.MARKET_PRESET()
         self._market_data = []
+
+        self.strategy_id = strategy_id
+
+        self.qifiacc = QIFI_Account(
+            username=strategy_id, password=strategy_id, )
 
         self._old_data = QA.QA_fetch_get_future_min('tdx', code.upper(), QA.QA_util_get_last_day(
             QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), dtype).set_index(['datetime', 'code'])
@@ -49,7 +56,7 @@ class QAStrategyCTABase():
         self.client = pymongo.MongoClient(mongouri).QAREALTIME.account
         self.subscriber_client = pymongo.MongoClient(
             mongouri).QAREALTIME.subscribe
-        self.strategy_id = strategy_id
+
         self.subscriber_client.insert_one(
             {'strategy_id': self.strategy_id, 'user_id': 'oL-C4w1HjuPRqTIRcZUyYR0QcLzo'})
         """需要一个单独的线程 daemon=True 更新账户
@@ -67,8 +74,8 @@ class QAStrategyCTABase():
         self.job_control = pymongo.MongoClient(
             mongouri).QAREALTIME.strategy_schedule
         self.job_control.update(
-            {'strategy_id': self.strategy_id, 'account_cookie': self.account_cookie},
-            {'strategy_id': self.strategy_id, 'account_cookie': self.account_cookie, 'taskid': taskid,
+            {'strategy_id': self.strategy_id},
+            {'strategy_id': self.strategy_id, 'taskid': taskid,
              'filepath': os.path.abspath(__file__), 'status': 200}, upsert=True)
 
     def subscribe_data(self, code, dtype, data_host, data_port, data_user, data_password):
@@ -141,7 +148,7 @@ class QAStrategyCTABase():
             time.sleep(10)
 
         res = self.job_control.find_one(
-            {'strategy_id': self.strategy_id, 'account_cookie': self.account_cookie})
+            {'strategy_id': self.strategy_id, 'strategy_id': self.strategy_id})
         self.control_status(res)
 
         self.upcoming_data(bar)
@@ -217,24 +224,22 @@ class QAStrategyCTABase():
             self.last_order_towards = {'BUY': '', 'SELL': ''}
             self.last_order_towards[direction] = offset
             now = str(datetime.datetime.now())
+
+            towards = eval('ORDER_DIRECTION.{}_{}'.format(direction, offset))
+
+            order = self.qifiacc.send_order(
+                code=self.xcode, towards=towards, price=price, amount=volume, order_id=order_id)
+            order['topic'] = 'send_order'
             self.pub.pub(
-                json.dumps({
-                    'topic': 'sendorder',
-                    'account_cookie': self.account_cookie,
-                    'strategy_id': self.strategy_id,
-                    'order_direction': direction,
-                    'code': self.xcode.lower(),
-                    'price': price,
-                    'order_time': now,
-                    'exchange_id': self.get_exchange(self.xcode),
-                    'order_offset': offset,
-                    'volume': volume,
-                    'order_id': order_id
-                }), routing_key=self.account_cookie)
+                json.dumps(order), routing_key=self.strategy_id)
+
+            self.qifiacc.make_deal(order)
 
             try:
                 for user in self.subscriber_list:
                     QA.QA_util_log_info(self.subscriber_list)
+
+                    "oL-C4w2WlfyZ1vHSAHLXb2gvqiMI"
                     """http://www.yutiansut.com/signal?user_id=oL-C4w1HjuPRqTIRcZUyYR0QcLzo&template=xiadan_report&\
                                 strategy_id=test1&realaccount=133496&code=rb1910&order_direction=BUY&\
                                 order_offset=OPEN&price=3600&volume=1&order_time=20190909
@@ -243,17 +248,17 @@ class QAStrategyCTABase():
                     requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&\
                                 strategy_id={}&realaccount={}&code={}&order_direction={}&\
                                 order_offset={}&price={}&volume={}&order_time={}'.format(
-                        user, "xiadan_report", self.strategy_id, self.account_cookie, self.xcode.lower(), direction, offset, price, volume, now))
+                        user, "xiadan_report", self.strategy_id, self.strategy_id, self.xcode.lower(), direction, offset, price, volume, now))
             except Exception as e:
                 QA.QA_util_log_info(e)
-            # self.order_queue.insert()
+
         else:
             QA.QA_util_log_info('failed in ORDER_CHECK')
 
     def update_account(self):
         QA.QA_util_log_info('{} UPDATE ACCOUNT'.format(
             str(datetime.datetime.now())))
-        _t = self.client.find_one({'account_cookie': self.account_cookie})
+        _t = self.client.find_one({'strategy_id': self.strategy_id})
         print(_t)
         self.accounts = _t['accounts']
         self.orders = _t['orders']
