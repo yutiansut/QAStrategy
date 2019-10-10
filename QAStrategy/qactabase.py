@@ -21,7 +21,7 @@ from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 
 
 class QAStrategyCTABase():
-    def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY',
+    def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1,
                  data_host='127.0.0.1', data_port=5672, data_user='admin', data_password='admin',
                  trade_host='127.0.0.1', trade_port=5672, trade_user='admin', trade_password='admin',
                  taskid=None, mongouri='mongodb://127.0.0.1:27017'):
@@ -33,7 +33,7 @@ class QAStrategyCTABase():
 
         self.market_preset = QA.QAARP.MARKET_PRESET()
         self._market_data = []
-
+        self.risk_check_gap = risk_check_gap
         self.strategy_id = strategy_id
 
         self.qifiacc = QIFI_Account(
@@ -191,6 +191,9 @@ class QAStrategyCTABase():
     def daily_func(self):
         QA.QA_util_log_info('DAILY FUNC')
 
+    def risk_check(self):
+        pass
+
     def check_order(self, direction, offset):
         """[summary]
         同方向不开仓
@@ -281,7 +284,8 @@ class QAStrategyCTABase():
 
         self.sub.start()
         while True:
-            pass
+            time.sleep(self.risk_check_gap)
+            self.risk_check()
 
 
 if __name__ == '__main__':
