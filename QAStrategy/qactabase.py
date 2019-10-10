@@ -114,7 +114,7 @@ class QAStrategyCTABase():
         if self.isupdate:
             self.update()
             self.isupdate = False
-        self.update_account()
+        self.update_account(new_bar['close'])
         self.on_bar()
 
     def ind2str(self, ind, ind_type):
@@ -255,16 +255,16 @@ class QAStrategyCTABase():
         else:
             QA.QA_util_log_info('failed in ORDER_CHECK')
 
-    def update_account(self):
+    def update_account(self, price):
         QA.QA_util_log_info('{} UPDATE ACCOUNT'.format(
             str(datetime.datetime.now())))
-        _t = self.client.find_one({'strategy_id': self.strategy_id})
-        print(_t)
-        self.accounts = _t['accounts']
-        self.orders = _t['orders']
-        self.positions = _t['positions']
-        self.trades = _t['trades']
-        self.updatetime = _t['updatetime']
+
+        self.qifiacc.on_price_change(self.xcode, price)
+        self.accounts = self.qifiacc.account_msg
+        self.orders = self.qifiacc.orders
+        self.positions = self.qifiacc.get_position(self.xcode)
+        self.trades = self.qifiacc.trades
+        self.updatetime = self.qifiacc.dtstr
 
     def get_exchange(self, code):
         return self.market_preset.get_exchange(code)
