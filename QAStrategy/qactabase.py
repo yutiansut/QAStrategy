@@ -1,14 +1,10 @@
-from QUANTAXIS.QAARP import QA_User
-from QUANTAXIS.QAUtil.QAParameter import RUNNING_ENVIRONMENT, MARKET_TYPE
-from QUANTAXIS.QAEngine.QAThreadEngine import QA_Thread
-
-
 import datetime
 import json
+import os
+import sys
 import threading
 import time
-import sys
-import os
+
 import pandas as pd
 import pymongo
 import requests
@@ -17,11 +13,16 @@ import QUANTAXIS as QA
 from QAPUBSUB.consumer import subscriber, subscriber_routing
 from QAPUBSUB.producer import publisher_routing
 from QAStrategy.util import QA_data_futuremin_resample
+from QUANTAXIS.QAARP import QA_User
+from QUANTAXIS.QAEngine.QAThreadEngine import QA_Thread
+from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
+from QIFIAccount import QIFI_Account, ORDER_DIRECTION
+
 
 class QAStrategyCTABase():
     def __init__(self, code='rb1905', account_cookie='106184', dtype='1min',
-                 data_host='192.168.2.21', data_port=5672, data_user='admin', data_password='admin',
-                 trade_host='192.168.2.21', trade_port=5672, trade_user='admin', trade_password='admin',
+                 data_host='127.0.0.1', data_port=5672, data_user='admin', data_password='admin',
+                 trade_host='127.0.0.1', trade_port=5672, trade_user='admin', trade_password='admin',
                  strategy_id='QA_STRATEGY', taskid=None,
                  mongouri='mongodb://127.0.0.1:27017'):
 
@@ -42,7 +43,6 @@ class QAStrategyCTABase():
         self.pub = publisher_routing(exchange='QAORDER_ROUTER', host=trade_host,
                                      port=trade_port, user=trade_user, password=trade_password)
 
-                                     
         self.isupdate = False
         self.new_data = {}
         self.last_order_towards = {'BUY': '', 'SELL': ''}
@@ -64,20 +64,12 @@ class QAStrategyCTABase():
         account类的属性, 可以是独立账户/可以是子账户
         """
 
-        self.broker_name = ''
-        self.account_cookie = account_cookie
-        self.hold = []
-        self.orders = []
-        self.trades = []
-        self.positions = []
-        self.cash = []
-        self.accounts = {}
-        self.updatetime = ''
         self.job_control = pymongo.MongoClient(
             mongouri).QAREALTIME.strategy_schedule
         self.job_control.update(
             {'strategy_id': self.strategy_id, 'account_cookie': self.account_cookie},
-            {'strategy_id': self.strategy_id, 'account_cookie': self.account_cookie, 'taskid': taskid, 'filepath': os.path.abspath(__file__), 'status': 200}, upsert=True)
+            {'strategy_id': self.strategy_id, 'account_cookie': self.account_cookie, 'taskid': taskid,
+             'filepath': os.path.abspath(__file__), 'status': 200}, upsert=True)
 
     def subscribe_data(self, code, dtype, data_host, data_port, data_user, data_password):
         """[summary]
