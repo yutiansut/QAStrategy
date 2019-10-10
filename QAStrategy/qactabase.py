@@ -38,6 +38,7 @@ class QAStrategyCTABase():
 
         self.qifiacc = QIFI_Account(
             username=strategy_id, password=strategy_id, )
+        self.qifiacc.initial()
 
         self._old_data = QA.QA_fetch_get_future_min('tdx', code.upper(), QA.QA_util_get_last_day(
             QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), frequence).set_index(['datetime', 'code'])
@@ -56,6 +57,7 @@ class QAStrategyCTABase():
         self.client = pymongo.MongoClient(mongouri).QAREALTIME.account
         self.subscriber_client = pymongo.MongoClient(
             mongouri).QAREALTIME.subscribe
+        threading.Thread(target=self.sub.start).start()
 
         self.subscriber_client.insert_one(
             {'strategy_id': self.strategy_id, 'user_id': 'oL-C4w1HjuPRqTIRcZUyYR0QcLzo'})
@@ -282,7 +284,7 @@ class QAStrategyCTABase():
 
     def run(self):
 
-        self.sub.start()
+        
         while True:
             time.sleep(self.risk_check_gap)
             self.risk_check()
