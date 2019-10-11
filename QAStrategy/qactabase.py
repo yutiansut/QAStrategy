@@ -220,7 +220,8 @@ class QAStrategyCTABase():
         self.send_order(direction=direction, offset=offset,
                         volume=trade_amount, price=trade_price, order_id=QA.QA_util_random_with_topic(self.strategy_id))
 
-    def send_order(self,  direction='BUY', offset='OPEN', price=3925, volume=10, order_id=QA.QA_util_random_with_topic('WDRB_QA01')):
+    def send_order(self,  direction='BUY', offset='OPEN', price=3925, volume=10, order_id=''):
+        order_id = str(uuid.uuid4()) if order_id == '' else order_id
         QA.QA_util_log_info(
             '============ {} SEND ORDER =================='.format(order_id))
         QA.QA_util_log_info('direction{} offset {} price{} volume{}'.format(
