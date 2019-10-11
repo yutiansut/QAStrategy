@@ -9,27 +9,31 @@ class MACD(QAStrategyCTABase):
 
         res = self.macd()
 
-        print(res)
+        print(res.iloc[-1])
 
         if res.DIF[-1] > res.DEA[-1]:
-            if self.get_positions(self.code).volume_long == 0:
+
+            print('LONG')
+
+            if self.positions.volume_long == 0:
                 self.send_order('BUY', 'OPEN', price=bar['close'], volume=1)
 
-            if self.get_positions(self.code).volume_short > 0:
+            if self.positions.volume_short > 0:
                 self.send_order('SELL', 'CLOSE', price=bar['close'], volume=1)
 
         else:
-            if self.get_positions(self.code).volume_short == 0:
+            print('SHORT')
+            if self.positions.volume_short == 0:
                 self.send_order('SELL', 'OPEN', price=bar['close'], volume=1)
-            if self.get_positions(self.code).volume_long > 0:
+            if self.positions.volume_long > 0:
                 self.send_order('BUY', 'CLOSE', price=bar['close'], volume=1)
 
     def macd(self,):
         return QA.QA_indicator_MACD(self.market_data)
 
     def risk_check(self):
-
-        pprint.pprint(self.qifiacc.message)
+        pass
+        #pprint.pprint(self.qifiacc.message)
 
 
 if __name__ == '__main__':
