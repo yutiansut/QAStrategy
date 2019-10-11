@@ -159,9 +159,9 @@ class QAStrategyCTABase():
             self.daily_func()
             time.sleep(10)
 
-        res = self.job_control.find_one(
-            {'strategy_id': self.strategy_id, 'strategy_id': self.strategy_id})
-        self.control_status(res)
+        # res = self.job_control.find_one(
+        #     {'strategy_id': self.strategy_id, 'strategy_id': self.strategy_id})
+        # self.control_status(res)
 
         self.upcoming_data(bar)
 
