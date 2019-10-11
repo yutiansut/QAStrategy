@@ -38,4 +38,4 @@ class CCI(QAStrategyCTABase):
 
 if __name__ == '__main__':
     CCI(code='RB2001', frequence='1min',
-        strategy_id='1dd8b22d-7902-4a85-adb2-fbac4bb977fe').run()
+        strategy_id='a3916de0-bd28-4b9c-bea1-94d91f1744ac').run()
