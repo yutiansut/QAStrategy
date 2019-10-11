@@ -104,6 +104,15 @@ class QAStrategyCTABase():
     def market_data(self):
         return self._market_data
 
+    def force_close(self):
+        # 强平
+        for item in self.positions.volume_long:
+            self.send_order('SELL', 'CLOSE', price=self.positions.last_price,
+                            volume=self.positions.volume_long)
+        for item in self.positions.volume_short:
+            self.send_order('BUY', 'CLOSE', price=self.positions.last_price,
+                            volume=self.positions.volume_short)
+
     def upcoming_data(self, new_bar):
         """upcoming_bar :
 
@@ -285,7 +294,6 @@ class QAStrategyCTABase():
 
     def run(self):
 
-        
         while True:
             time.sleep(self.risk_check_gap)
             self.risk_check()
