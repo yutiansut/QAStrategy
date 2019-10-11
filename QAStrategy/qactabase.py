@@ -89,7 +89,7 @@ class QAStrategyCTABase():
         """
 
         self.sub = subscriber(exchange='realtime_{}_{}'.format(
-            frequence, code), host=data_host, port=data_port, user=data_user, password=data_password)
+            frequence, code.upper()), host=data_host, port=data_port, user=data_user, password=data_password)
         self.sub.callback = self.callback
 
     @property
@@ -117,7 +117,7 @@ class QAStrategyCTABase():
             self.update()
             self.isupdate = False
         self.update_account()
-        self.on_bar()
+        self.on_bar(new_bar)
 
     def ind2str(self, ind, ind_type):
         z = ind.tail(1).reset_index().to_dict(orient='records')[0]
@@ -172,7 +172,7 @@ class QAStrategyCTABase():
     def load_strategy(self):
         raise NotImplementedError
 
-    def on_bar(self):
+    def on_bar(self, bar):
         raise NotImplementedError
 
     def on_1min_bar(self):
@@ -276,7 +276,7 @@ class QAStrategyCTABase():
 
     def get_positions(self, code):
         self.update_account()
-        return self.positions.get('{}.{}'.format(self.get_exchange(code), code.lower()), False)
+        return self.positions
 
     def get_cash(self):
         self.update_account()
