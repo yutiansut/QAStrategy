@@ -106,10 +106,10 @@ class QAStrategyCTABase():
 
     def force_close(self):
         # 强平
-        for item in self.positions.volume_long:
+        if self.positions.volume_long >0 :
             self.send_order('SELL', 'CLOSE', price=self.positions.last_price,
                             volume=self.positions.volume_long)
-        for item in self.positions.volume_short:
+        if self.positions.volume_short>0:
             self.send_order('BUY', 'CLOSE', price=self.positions.last_price,
                             volume=self.positions.volume_short)
 
