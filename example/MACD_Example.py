@@ -33,8 +33,9 @@ class MACD(QAStrategyCTABase):
 
     def risk_check(self):
         pass
-        #pprint.pprint(self.qifiacc.message)
+        # pprint.pprint(self.qifiacc.message)
 
 
 if __name__ == '__main__':
-    MACD(code='RB2001', frequence='1min', strategy_id='1dd8b22d-7902-4a85-adb2-fbac4bb977fe').run()
+    MACD(code='RB2001', frequence='1min',
+         strategy_id='1dd8b22d-7902-4a85-adb2-fbac4bb977fe').run()
