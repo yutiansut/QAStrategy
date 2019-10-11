@@ -230,6 +230,11 @@ class QAStrategyCTABase():
                         volume=trade_amount, price=trade_price, order_id=QA.QA_util_random_with_topic(self.strategy_id))
 
     def send_order(self,  direction='BUY', offset='OPEN', price=3925, volume=10, order_id=''):
+        print(type(price))
+        if isinstance(price, float):
+            pass
+        elif isinstance(price, pd.Series):
+            price = price.values[0]
         order_id = str(uuid.uuid4()) if order_id == '' else order_id
         QA.QA_util_log_info(
             '============ {} SEND ORDER =================='.format(order_id))
@@ -261,10 +266,8 @@ class QAStrategyCTABase():
                                 order_offset=OPEN&price=3600&volume=1&order_time=20190909
                     """
 
-                    requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&\
-                                strategy_id={}&realaccount={}&code={}&order_direction={}&\
-                                order_offset={}&price={}&volume={}&order_time={}'.format(
-                        user, "xiadan_report", self.strategy_id, self.strategy_id, self.code.lower(), direction, offset, price, volume, now))
+                    requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
+                        user, "xiadan_report", self.strategy_id, self.qifiacc.user_id, self.code.lower(), direction, offset, price, volume, now))
             except Exception as e:
                 QA.QA_util_log_info(e)
 

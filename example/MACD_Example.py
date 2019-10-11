@@ -38,4 +38,4 @@ class MACD(QAStrategyCTABase):
 
 if __name__ == '__main__':
     MACD(code='RB2001', frequence='1min',
-         strategy_id='1dd8b22d-7902-4a85-adb2-fbac4bb977fe').run()
+         strategy_id='1dds1s2d-7902-4a85-adb2-fbac4bb977fe').run()
