@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import re
 import sys
 import threading
 import time
@@ -17,13 +18,14 @@ from QAPUBSUB.consumer import subscriber, subscriber_routing
 from QAPUBSUB.producer import publisher_routing
 from QAStrategy.util import QA_data_futuremin_resample
 from qifiaccount import ORDER_DIRECTION, QIFI_Account
-from QUANTAXIS.QAARP import QA_User
+from QUANTAXIS.QAARP import QA_Risk, QA_User
 from QUANTAXIS.QAEngine.QAThreadEngine import QA_Thread
 from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 
 
 class QAStrategyCTABase():
     def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
+                 start='2019-01-01', end='2019-10-21',
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                  taskid=None, mongo_ip=mongo_ip):
@@ -45,6 +47,9 @@ class QAStrategyCTABase():
         self.trade_user = trade_user
         self.trade_password = trade_password
 
+        self.start = start
+        self.end = end
+
         self.taskid = taskid
 
         self.running_time = ''
@@ -57,11 +62,14 @@ class QAStrategyCTABase():
         self.new_data = {}
         self.last_order_towards = {'BUY': '', 'SELL': ''}
 
+        self.market_type = MARKET_TYPE.FUTURE_CN if re.search(
+            r'[a-zA-z]+', self.code) else MARKET_TYPE.STOCK_CN
+
     def run_sim(self):
         self.running_mode = 'sim'
 
-        self._old_data = QA.QA_fetch_get_future_min('tdx', code.upper(), QA.QA_util_get_last_day(
-            QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), frequence).set_index(['datetime', 'code'])
+        self._old_data = QA.QA_fetch_get_future_min('tdx', self.code.upper(), QA.QA_util_get_last_day(
+            QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), self.frequence).set_index(['datetime', 'code'])
         self._old_data = self._old_data.assign(volume=self._old_data.trade).loc[:, [
             'open', 'high', 'low', 'close', 'volume']]
 
@@ -96,9 +104,24 @@ class QAStrategyCTABase():
         self.acc = port.new_account(
             account_cookie=self.strategy_id, init_cash=1000000)
 
+        data = QA.QA_quotation(self.code, self.start, self.end, 
+                    frequence = self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
+        for idx, item in data.iterrows():
+            self.on_bar(item)
+
+        self.acc.save()
+
+        risk = QA_Risk(self.acc)
+        risk.save()
+
     def debug(self):
-        self.running_mode = 'debug'
-        pass
+        self.running_mode = 'backtest'
+        self.running_mode = 'backtest'
+        self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
+        user = QA_User(username="admin", password='admin')
+        port = user.new_portfolio(self.portfolio)
+        self.acc = port.new_account(
+            account_cookie=self.strategy_id, init_cash=1000000)
 
     def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
         """[summary]
