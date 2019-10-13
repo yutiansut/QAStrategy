@@ -26,10 +26,10 @@ class QAStrategyCTABase():
     def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1,
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
-                 taskid=None, mongouri=mongo_uri):
+                 taskid=None, mongo_ip = mongo_ip):
 
         self.trade_host = trade_host
-        self.database = pymongo.MongoClient(mongouri).QAREALTIME
+        self.database = pymongo.MongoClient(mongo_ip).QAREALTIME
 
         self.code = code
         self.frequence = frequence
@@ -40,7 +40,7 @@ class QAStrategyCTABase():
         self.strategy_id = strategy_id
 
         self.qifiacc = QIFI_Account(
-            username=strategy_id, password=strategy_id, trade_host=trade_host)
+            username=strategy_id, password=strategy_id, trade_host=mongo_ip)
         self.qifiacc.initial()
 
         self._old_data = QA.QA_fetch_get_future_min('tdx', code.upper(), QA.QA_util_get_last_day(
