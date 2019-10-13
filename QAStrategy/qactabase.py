@@ -168,6 +168,14 @@ class QAStrategyCTABase():
     def control_status(self, res):
         print(res)
 
+    def add_subscriber(self, qaproid):
+        """Add a subscriber
+        增加订阅者的QAPRO_ID
+        
+        """
+        self.subscriber_client.insert_one(
+            {'strategy_id': self.strategy_id, 'user_id': qaproid})
+
     @property
     def subscriber_list(self):
         """订阅者
