@@ -9,6 +9,8 @@ import uuid
 import pandas as pd
 import pymongo
 import requests
+from qaenv import (eventmq_amqp, eventmq_ip, eventmq_password, eventmq_port,
+                   eventmq_username, mongo_ip, mongo_uri)
 
 import QUANTAXIS as QA
 from QAPUBSUB.consumer import subscriber, subscriber_routing
@@ -19,12 +21,12 @@ from QUANTAXIS.QAARP import QA_User
 from QUANTAXIS.QAEngine.QAThreadEngine import QA_Thread
 from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 
-from qaenv import mongouri, mongo_ip, eventmq_ip, eventmq_port, eventmq_username, eventmq_password, eventmq_amqp
+
 class QAStrategyCTABase():
     def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1,
-                 data_host= eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
+                 data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
-                 taskid=None, mongouri= mongouri):
+                 taskid=None, mongouri=mongo_uri):
 
         self.trade_host = trade_host
         self.database = pymongo.MongoClient(mongouri).QAREALTIME

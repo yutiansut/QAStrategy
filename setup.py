@@ -1,4 +1,4 @@
-  
+
 # coding=utf-8
 #
 # The MIT License (MIT)
@@ -48,8 +48,6 @@ with io.open('QAStrategy/__init__.py', 'rt', encoding='utf8') as f:
     AUTHOR = re.search(r'__author__ = \'(.*?)\'', context).group(1)
 
 
-
-
 def read(fname):
 
     return codecs.open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -63,8 +61,6 @@ PACKAGES = ["QAStrategy"]
 """
 
 DESCRIPTION = "QUANTAXIS:Quantitative Financial Strategy Framework"
-
-
 
 
 """
@@ -93,7 +89,7 @@ setup(
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
     ],
-    install_requires=['quantaxis', 'qaenv'],
+    install_requires=['quantaxis', 'qaenv', 'qifiaccount'],
     entry_points={
     },
     # install_requires=requirements,
