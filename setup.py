@@ -76,7 +76,7 @@ KEYWORDS = ["quantaxis", "quant", "finance", "Backtest", 'Framework']
 
 AUTHOR_EMAIL = "yutiansut@qq.com"
 
-URL = "https://github.com/quantaxis/quantaxis"
+URL = "https://github.com/yutiansut/QAStrategy"
 
 
 LICENSE = "MIT"
@@ -93,7 +93,7 @@ setup(
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
     ],
-    install_requires=['quantaxis'],
+    install_requires=['quantaxis', 'qaenv'],
     entry_points={
     },
     # install_requires=requirements,

@@ -19,12 +19,12 @@ from QUANTAXIS.QAARP import QA_User
 from QUANTAXIS.QAEngine.QAThreadEngine import QA_Thread
 from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 
-
+from qaenv import mongouri, mongo_ip, eventmq_ip, eventmq_port, eventmq_username, eventmq_password, eventmq_amqp
 class QAStrategyCTABase():
     def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1,
-                 data_host='127.0.0.1', data_port=5672, data_user='admin', data_password='admin',
-                 trade_host='127.0.0.1', trade_port=5672, trade_user='admin', trade_password='admin',
-                 taskid=None, mongouri='mongodb://127.0.0.1:27017'):
+                 data_host= eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
+                 trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
+                 taskid=None, mongouri= mongouri):
 
         self.trade_host = trade_host
         self.database = pymongo.MongoClient(mongouri).QAREALTIME
