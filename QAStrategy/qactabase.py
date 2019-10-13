@@ -27,6 +27,7 @@ class QAStrategyCTABase():
                  taskid=None, mongouri='mongodb://127.0.0.1:27017'):
 
         self.trade_host = trade_host
+        self.database = pymongo.MongoClient(mongouri).QAREALTIME
 
         self.code = code
         self.frequence = frequence
@@ -37,7 +38,7 @@ class QAStrategyCTABase():
         self.strategy_id = strategy_id
 
         self.qifiacc = QIFI_Account(
-            username=strategy_id, password=strategy_id, )
+            username=strategy_id, password=strategy_id, trade_host=trade_host)
         self.qifiacc.initial()
 
         self._old_data = QA.QA_fetch_get_future_min('tdx', code.upper(), QA.QA_util_get_last_day(
@@ -54,31 +55,27 @@ class QAStrategyCTABase():
         self.isupdate = False
         self.new_data = {}
         self.last_order_towards = {'BUY': '', 'SELL': ''}
-        self.client = pymongo.MongoClient(mongouri).QAREALTIME.account
-        self.subscriber_client = pymongo.MongoClient(
-            mongouri).QAREALTIME.subscribe
-        threading.Thread(target=self.sub.start).start()
 
-        self.subscriber_client.insert_one(
-            {'strategy_id': self.strategy_id, 'user_id': 'oL-C4w1HjuPRqTIRcZUyYR0QcLzo'})
+        self.client = self.database.account
+        self.subscriber_client = self.database.subscribe
+        self.job_control = self.database.strategy_schedule
+
+        self.add_subscriber('oL-C4w1HjuPRqTIRcZUyYR0QcLzo')
         """需要一个单独的线程 daemon=True 更新账户
         
         """
-        # self.account_thread = threading.Thread(
-        #     target=self.update_account, daemon=True)
-        # self.account_thread.start()
 
         """account 类
 
         account类的属性, 可以是独立账户/可以是子账户
         """
 
-        self.job_control = pymongo.MongoClient(
-            mongouri).QAREALTIME.strategy_schedule
         self.job_control.update(
             {'strategy_id': self.strategy_id},
             {'strategy_id': self.strategy_id, 'taskid': taskid,
              'filepath': os.path.abspath(__file__), 'status': 200}, upsert=True)
+
+        threading.Thread(target=self.sub.start, daemon=True).start()
 
     def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
         """[summary]
@@ -106,10 +103,10 @@ class QAStrategyCTABase():
 
     def force_close(self):
         # 强平
-        if self.positions.volume_long >0 :
+        if self.positions.volume_long > 0:
             self.send_order('SELL', 'CLOSE', price=self.positions.last_price,
                             volume=self.positions.volume_long)
-        if self.positions.volume_short>0:
+        if self.positions.volume_short > 0:
             self.send_order('BUY', 'CLOSE', price=self.positions.last_price,
                             volume=self.positions.volume_short)
 
@@ -171,7 +168,7 @@ class QAStrategyCTABase():
     def add_subscriber(self, qaproid):
         """Add a subscriber
         增加订阅者的QAPRO_ID
-        
+
         """
         self.subscriber_client.insert_one(
             {'strategy_id': self.strategy_id, 'user_id': qaproid})
