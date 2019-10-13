@@ -16,68 +16,89 @@ import QUANTAXIS as QA
 from QAPUBSUB.consumer import subscriber, subscriber_routing
 from QAPUBSUB.producer import publisher_routing
 from QAStrategy.util import QA_data_futuremin_resample
-from QIFIAccount import ORDER_DIRECTION, QIFI_Account
+from qifiaccount import ORDER_DIRECTION, QIFI_Account
 from QUANTAXIS.QAARP import QA_User
 from QUANTAXIS.QAEngine.QAThreadEngine import QA_Thread
 from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 
 
 class QAStrategyCTABase():
-    def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1,
+    def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
-                 taskid=None, mongo_ip = mongo_ip):
+                 taskid=None, mongo_ip=mongo_ip):
 
         self.trade_host = trade_host
-        self.database = pymongo.MongoClient(mongo_ip).QAREALTIME
 
         self.code = code
         self.frequence = frequence
+        self.strategy_id = strategy_id
+
+        self.portfolio = portfolio
+
+        self.data_host = data_host
+        self.data_port = data_port
+        self.data_user = data_user
+        self.data_password = data_password
+        self.trade_host = trade_host
+        self.trade_port = trade_port
+        self.trade_user = trade_user
+        self.trade_password = trade_password
+
+        self.taskid = taskid
+
+        self.running_time = ''
 
         self.market_preset = QA.QAARP.MARKET_PRESET()
         self._market_data = []
         self.risk_check_gap = risk_check_gap
-        self.strategy_id = strategy_id
 
-        self.qifiacc = QIFI_Account(
-            username=strategy_id, password=strategy_id, trade_host=mongo_ip)
-        self.qifiacc.initial()
+        self.isupdate = False
+        self.new_data = {}
+        self.last_order_towards = {'BUY': '', 'SELL': ''}
+
+    def run_sim(self):
+        self.running_mode = 'sim'
 
         self._old_data = QA.QA_fetch_get_future_min('tdx', code.upper(), QA.QA_util_get_last_day(
             QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), frequence).set_index(['datetime', 'code'])
         self._old_data = self._old_data.assign(volume=self._old_data.trade).loc[:, [
             'open', 'high', 'low', 'close', 'volume']]
 
-        self.subscribe_data(code.lower(), frequence, data_host,
-                            data_port, data_user, data_password)
-
-        self.pub = publisher_routing(exchange='QAORDER_ROUTER', host=trade_host,
-                                     port=trade_port, user=trade_user, password=trade_password)
-
-        self.isupdate = False
-        self.new_data = {}
-        self.last_order_towards = {'BUY': '', 'SELL': ''}
+        self.database = pymongo.MongoClient(mongo_ip).QAREALTIME
 
         self.client = self.database.account
         self.subscriber_client = self.database.subscribe
-        self.job_control = self.database.strategy_schedule
+
+        self.acc = QIFI_Account(
+            username=self.strategy_id, password=self.strategy_id, trade_host=mongo_ip)
+        self.acc.initial()
+
+        self.pub = publisher_routing(exchange='QAORDER_ROUTER', host=self.trade_host,
+                                     port=self.trade_port, user=self.trade_user, password=self.trade_password)
+
+        self.subscribe_data(self.code.lower(), self.frequence, self.data_host,
+                            self.data_port, self.data_user, self.data_password)
 
         self.add_subscriber('oL-C4w1HjuPRqTIRcZUyYR0QcLzo')
-        """需要一个单独的线程 daemon=True 更新账户
-        
-        """
-
-        """account 类
-
-        account类的属性, 可以是独立账户/可以是子账户
-        """
-
-        self.job_control.update(
+        self.database.strategy_schedule.job_control.update(
             {'strategy_id': self.strategy_id},
-            {'strategy_id': self.strategy_id, 'taskid': taskid,
+            {'strategy_id': self.strategy_id, 'taskid': self.taskid,
              'filepath': os.path.abspath(__file__), 'status': 200}, upsert=True)
 
         threading.Thread(target=self.sub.start, daemon=True).start()
+
+    def run_backtest(self):
+        self.running_mode = 'backtest'
+        self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
+        user = QA_User(username="admin", password='admin')
+        port = user.new_portfolio(self.portfolio)
+        self.acc = port.new_account(
+            account_cookie=self.strategy_id, init_cash=1000000)
+
+    def debug(self):
+        self.running_mode = 'debug'
+        pass
 
     def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
         """[summary]
@@ -147,10 +168,10 @@ class QAStrategyCTABase():
         """
 
         self.new_data = json.loads(str(body, encoding='utf-8'))
-
+        self.running_time = self.new_data['datetime']
         if self.new_data['datetime'][-9:] == '00.000000':
             self.isupdate = True
-        self.qifiacc.on_price_change(self.code, self.new_data['close'])
+        self.acc.on_price_change(self.code, self.new_data['close'])
         bar = pd.DataFrame([self.new_data]).set_index(['datetime', 'code']
                                                       ).loc[:, ['open', 'high', 'low', 'close', 'volume']]
         now = datetime.datetime.now()
@@ -237,70 +258,84 @@ class QAStrategyCTABase():
                         volume=trade_amount, price=trade_price, order_id=QA.QA_util_random_with_topic(self.strategy_id))
 
     def send_order(self,  direction='BUY', offset='OPEN', price=3925, volume=10, order_id=''):
-        print(type(price))
+
+        towards = eval('ORDER_DIRECTION.{}_{}'.format(direction, offset))
+        order_id = str(uuid.uuid4()) if order_id == '' else order_id
+
         if isinstance(price, float):
             pass
         elif isinstance(price, pd.Series):
             price = price.values[0]
-        order_id = str(uuid.uuid4()) if order_id == '' else order_id
-        QA.QA_util_log_info(
-            '============ {} SEND ORDER =================='.format(order_id))
-        QA.QA_util_log_info('direction{} offset {} price{} volume{}'.format(
-            direction, offset, price, volume))
 
-        if self.check_order(direction, offset):
-            self.last_order_towards = {'BUY': '', 'SELL': ''}
-            self.last_order_towards[direction] = offset
-            now = str(datetime.datetime.now())
+        if self.running_mode == 'sim':
 
-            towards = eval('ORDER_DIRECTION.{}_{}'.format(direction, offset))
+            QA.QA_util_log_info(
+                '============ {} SEND ORDER =================='.format(order_id))
+            QA.QA_util_log_info('direction{} offset {} price{} volume{}'.format(
+                direction, offset, price, volume))
 
-            order = self.qifiacc.send_order(
-                code=self.code, towards=towards, price=price, amount=volume, order_id=order_id)
-            order['topic'] = 'send_order'
-            self.pub.pub(
-                json.dumps(order), routing_key=self.strategy_id)
+            if self.check_order(direction, offset):
+                self.last_order_towards = {'BUY': '', 'SELL': ''}
+                self.last_order_towards[direction] = offset
+                now = str(datetime.datetime.now())
 
-            self.qifiacc.make_deal(order)
+                order = self.acc.send_order(
+                    code=self.code, towards=towards, price=price, amount=volume, order_id=order_id)
+                order['topic'] = 'send_order'
+                self.pub.pub(
+                    json.dumps(order), routing_key=self.strategy_id)
 
-            try:
-                for user in self.subscriber_list:
-                    QA.QA_util_log_info(self.subscriber_list)
+                self.acc.make_deal(order)
 
-                    "oL-C4w2WlfyZ1vHSAHLXb2gvqiMI"
-                    """http://www.yutiansut.com/signal?user_id=oL-C4w1HjuPRqTIRcZUyYR0QcLzo&template=xiadan_report&\
-                                strategy_id=test1&realaccount=133496&code=rb1910&order_direction=BUY&\
-                                order_offset=OPEN&price=3600&volume=1&order_time=20190909
-                    """
+                try:
+                    for user in self.subscriber_list:
+                        QA.QA_util_log_info(self.subscriber_list)
 
-                    requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
-                        user, "xiadan_report", self.strategy_id, self.qifiacc.user_id, self.code.lower(), direction, offset, price, volume, now))
-            except Exception as e:
-                QA.QA_util_log_info(e)
+                        "oL-C4w2WlfyZ1vHSAHLXb2gvqiMI"
+                        """http://www.yutiansut.com/signal?user_id=oL-C4w1HjuPRqTIRcZUyYR0QcLzo&template=xiadan_report&\
+                                    strategy_id=test1&realaccount=133496&code=rb1910&order_direction=BUY&\
+                                    order_offset=OPEN&price=3600&volume=1&order_time=20190909
+                        """
 
-        else:
-            QA.QA_util_log_info('failed in ORDER_CHECK')
+                        requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
+                            user, "xiadan_report", self.strategy_id, self.acc.user_id, self.code.lower(), direction, offset, price, volume, now))
+                except Exception as e:
+                    QA.QA_util_log_info(e)
+
+            else:
+                QA.QA_util_log_info('failed in ORDER_CHECK')
+
+        elif self.running_mode == 'backtest':
+            self.acc.receive_simpledeal(
+                code=self.code, trade_time=self.running_time, trade_towards=towards, trade_amount=volume, trade_price=price, order_id=order_id)
 
     def update_account(self):
-        QA.QA_util_log_info('{} UPDATE ACCOUNT'.format(
-            str(datetime.datetime.now())))
+        if self.running_mode == 'sim':
+            QA.QA_util_log_info('{} UPDATE ACCOUNT'.format(
+                str(datetime.datetime.now())))
 
-        self.accounts = self.qifiacc.account_msg
-        self.orders = self.qifiacc.orders
-        self.positions = self.qifiacc.get_position(self.code)
-        self.trades = self.qifiacc.trades
-        self.updatetime = self.qifiacc.dtstr
+            self.accounts = self.acc.account_msg
+            self.orders = self.acc.orders
+            self.positions = self.acc.get_position(self.code)
+            self.trades = self.acc.trades
+            self.updatetime = self.acc.dtstr
 
     def get_exchange(self, code):
         return self.market_preset.get_exchange(code)
 
     def get_positions(self, code):
-        self.update_account()
-        return self.positions
+        if self.running_mode == 'sim':
+            self.update_account()
+            return self.positions
+        elif self.running_mode == 'backtest':
+            return self.acc.hold_available.get(self.code)
 
     def get_cash(self):
-        self.update_account()
-        return self.accounts.get('available', '')
+        if self.running_mode == 'sim':
+            self.update_account()
+            return self.accounts.get('available', '')
+        elif self.running_mode == 'backtest':
+            return self.acc.cash_available
 
     def run(self):
 
