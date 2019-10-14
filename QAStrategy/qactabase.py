@@ -128,7 +128,7 @@ class QAStrategyCTABase():
         """
 
         self.sub = subscriber(exchange='realtime_{}_{}'.format(
-            frequence, code.upper()), host=data_host, port=data_port, user=data_user, password=data_password)
+            frequence, code), host=data_host, port=data_port, user=data_user, password=data_password)
         self.sub.callback = self.callback
 
     @property
