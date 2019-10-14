@@ -97,18 +97,7 @@ class QAStrategyCTABase():
         threading.Thread(target=self.sub.start, daemon=True).start()
 
     def run_backtest(self):
-        self.running_mode = 'backtest'
-        self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
-        user = QA_User(username="admin", password='admin')
-        port = user.new_portfolio(self.portfolio)
-        self.acc = port.new_account(
-            account_cookie=self.strategy_id, init_cash=1000000)
-
-        data = QA.QA_quotation(self.code, self.start, self.end, 
-                    frequence = self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
-        for idx, item in data.iterrows():
-            self.on_bar(item)
-
+        self.debug()
         self.acc.save()
 
         risk = QA_Risk(self.acc)
@@ -116,12 +105,16 @@ class QAStrategyCTABase():
 
     def debug(self):
         self.running_mode = 'backtest'
-        self.running_mode = 'backtest'
         self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
         user = QA_User(username="admin", password='admin')
         port = user.new_portfolio(self.portfolio)
         self.acc = port.new_account(
             account_cookie=self.strategy_id, init_cash=1000000)
+
+        data = QA.QA_quotation(self.code, self.start, self.end,
+                               frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
+        for _, item in data.data.reset_index().iterrows():
+            self.on_bar(item)
 
     def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
         """[summary]
