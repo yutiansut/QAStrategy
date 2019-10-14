@@ -113,7 +113,15 @@ class QAStrategyCTABase():
 
         data = QA.QA_quotation(self.code, self.start, self.end,
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
+
         for _, item in data.data.reset_index().iterrows():
+
+            if len(self._market_data) < 1:
+                self._market_data = item
+
+            else:
+                self._market_data = pd.concat(
+                    [self._market_data, item], sort=False)
             self.on_bar(item)
 
     def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
