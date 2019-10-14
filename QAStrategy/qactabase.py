@@ -116,12 +116,7 @@ class QAStrategyCTABase():
 
         for _, item in data.data.reset_index().iterrows():
 
-            if len(self._market_data) < 1:
-                self._market_data = item
-
-            else:
-                self._market_data = pd.concat(
-                    [self._market_data, item], sort=False)
+            self._market_data.append(item)
             self.on_bar(item)
 
     def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
@@ -146,7 +141,11 @@ class QAStrategyCTABase():
 
     @property
     def market_data(self):
-        return self._market_data
+
+        if self.running_mode == 'sim':
+            return self._market_data
+        elif self.running_mode == 'backtest':
+            return pd.concat(self._market_data, axis=1).T.set_index(['datetime', 'code'])
 
     def force_close(self):
         # 强平
