@@ -17,7 +17,7 @@ import QUANTAXIS as QA
 from QAPUBSUB.consumer import subscriber, subscriber_routing
 from QAPUBSUB.producer import publisher_routing
 from QAStrategy.util import QA_data_futuremin_resample
-from qifiaccount import ORDER_DIRECTION, QIFI_Account
+from QIFIAccount import ORDER_DIRECTION, QIFI_Account
 from QUANTAXIS.QAARP import QA_Risk, QA_User
 from QUANTAXIS.QAEngine.QAThreadEngine import QA_Thread
 from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
