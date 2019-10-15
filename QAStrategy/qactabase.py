@@ -115,7 +115,7 @@ class QAStrategyCTABase():
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
 
         for _, item in data.data.reset_index().iterrows():
-
+            self.running_time = item['datetime']    
             self._market_data.append(item)
             self.on_bar(item)
 
