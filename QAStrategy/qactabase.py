@@ -111,7 +111,7 @@ class QAStrategyCTABase():
         self.acc = port.new_account(
             account_cookie=self.strategy_id, init_cash=1000000)
 
-        data = QA.QA_quotation(self.code, self.start, self.end,
+        data = QA.QA_quotation(self.code.upper(), self.start, self.end, source=QA.DATASOURCE.MONGO,
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
 
         for _, item in data.data.reset_index().iterrows():
