@@ -109,7 +109,7 @@ class QAStrategyCTABase():
         user = QA_User(username="admin", password='admin')
         port = user.new_portfolio(self.portfolio)
         self.acc = port.new_account(
-            account_cookie=self.strategy_id, init_cash=1000000)
+            account_cookie=self.strategy_id, init_cash=1000000, market_type= self.market_type)
 
         data = QA.QA_quotation(self.code.upper(), self.start, self.end, source=QA.DATASOURCE.MONGO,
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
