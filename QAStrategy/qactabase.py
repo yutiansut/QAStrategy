@@ -108,7 +108,7 @@ class QAStrategyCTABase():
         self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
         user = QA_User(username="admin", password='admin')
         port = user.new_portfolio(self.portfolio)
-        self.acc = port.new_account(
+        self.acc = port.new_accountpro(
             account_cookie=self.strategy_id, init_cash=1000000, market_type= self.market_type)
 
         data = QA.QA_quotation(self.code.upper(), self.start, self.end, source=QA.DATASOURCE.MONGO,
