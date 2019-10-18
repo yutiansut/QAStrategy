@@ -111,6 +111,10 @@ class QAStrategyCTABase():
         self.acc = port.new_accountpro(
             account_cookie=self.strategy_id, init_cash=1000000, market_type= self.market_type)
 
+
+        print(self.acc)
+
+        print(self.acc.market_type)
         data = QA.QA_quotation(self.code.upper(), self.start, self.end, source=QA.DATASOURCE.MONGO,
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
 
@@ -331,6 +335,8 @@ class QAStrategyCTABase():
         elif self.running_mode == 'backtest':
             self.acc.receive_simpledeal(
                 code=self.code, trade_time=self.running_time, trade_towards=towards, trade_amount=volume, trade_price=price, order_id=order_id)
+            self.positions = self.acc.get_position(self.code)
+
 
     def update_account(self):
         if self.running_mode == 'sim':
