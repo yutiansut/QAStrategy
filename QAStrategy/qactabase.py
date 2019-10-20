@@ -110,7 +110,7 @@ class QAStrategyCTABase():
         port = user.new_portfolio(self.portfolio)
         self.acc = port.new_accountpro(
             account_cookie=self.strategy_id, init_cash=1000000, market_type= self.market_type)
-
+        self.positions = self.acc.get_position(self.code)
 
         print(self.acc)
 
@@ -348,6 +348,9 @@ class QAStrategyCTABase():
             self.positions = self.acc.get_position(self.code)
             self.trades = self.acc.trades
             self.updatetime = self.acc.dtstr
+        elif self.running_mode == 'backtest':
+            self.positions = self.acc.get_position(self.code)
+
 
     def get_exchange(self, code):
         return self.market_preset.get_exchange(code)
