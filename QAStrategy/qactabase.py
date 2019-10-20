@@ -144,6 +144,10 @@ class QAStrategyCTABase():
         self.on_1min_bar()
 
     @property
+    def market_datetime(self):
+        return self.market_data.index.levels[0]
+
+    @property
     def market_data(self):
 
         if self.running_mode == 'sim':
