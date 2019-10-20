@@ -172,7 +172,9 @@ class QAStrategyCTABase():
         if self.isupdate:
             self.update()
             self.isupdate = False
+           
         self.update_account()
+        self.positions.on_price_change(float(new_bar['close'])) 
         self.on_bar(new_bar)
 
     def ind2str(self, ind, ind_type):
