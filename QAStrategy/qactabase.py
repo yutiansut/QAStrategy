@@ -153,7 +153,7 @@ class QAStrategyCTABase():
         if self.running_mode == 'sim':
             return self._market_data
         elif self.running_mode == 'backtest':
-            return pd.concat(self._market_data[-50:], axis=1, sort=False).T.set_index(['datetime', 'code'])
+            return pd.concat(self._market_data[-100:], axis=1, sort=False).T.set_index(['datetime', 'code'])
 
     def force_close(self):
         # 强平
