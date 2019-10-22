@@ -118,10 +118,14 @@ class QAStrategyCTABase():
         data = QA.QA_quotation(self.code.upper(), self.start, self.end, source=QA.DATASOURCE.MONGO,
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
 
-        for _, item in data.data.reset_index().iterrows():
-            self.running_time = item['datetime']    
+        def x1(data):
+            #print(data)
             self._market_data.append(item)
             self.on_bar(item)
+
+        data.data.apply(x1, axis=1)
+  
+            
 
     def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
         """[summary]
@@ -153,7 +157,7 @@ class QAStrategyCTABase():
         if self.running_mode == 'sim':
             return self._market_data
         elif self.running_mode == 'backtest':
-            return pd.concat(self._market_data[-100:], axis=1, sort=False).T.set_index(['datetime', 'code'])
+            return pd.concat(self._market_data[-100:], axis=1, sort=False).T
 
     def force_close(self):
         # 强平
