@@ -118,7 +118,7 @@ class QAStrategyCTABase():
         data = QA.QA_quotation(self.code.upper(), self.start, self.end, source=QA.DATASOURCE.MONGO,
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
 
-        def x1(data):
+        def x1(item):
             #print(data)
             self._market_data.append(item)
             self.on_bar(item)
