@@ -14,7 +14,7 @@ from qaenv import (eventmq_amqp, eventmq_ip, eventmq_password, eventmq_port,
                    eventmq_username, mongo_ip, mongo_uri)
 
 import QUANTAXIS as QA
-from QAPUBSUB.consumer import subscriber, subscriber_routing
+from QAPUBSUB.consumer import subscriber, subscriber_routing, subscriber_topic
 from QAPUBSUB.producer import publisher_routing
 from QAStrategy.util import QA_data_futuremin_resample
 from QIFIAccount import ORDER_DIRECTION, QIFI_Account
@@ -65,6 +65,12 @@ class QAStrategyCTABase():
         self.market_type = MARKET_TYPE.FUTURE_CN if re.search(
             r'[a-zA-z]+', self.code) else MARKET_TYPE.STOCK_CN
 
+        self.bar_order = {'BUY_OPEN': 0, 'SELL_OPEN': 0,
+                          'BUY_CLOSE': 0, 'SELL_CLOSE': 0}
+    @property
+    def bar_id(self):
+        return len(self._market_data)
+
     def run_sim(self):
         self.running_mode = 'sim'
 
@@ -109,7 +115,7 @@ class QAStrategyCTABase():
         user = QA_User(username="admin", password='admin')
         port = user.new_portfolio(self.portfolio)
         self.acc = port.new_accountpro(
-            account_cookie=self.strategy_id, init_cash=1000000, market_type= self.market_type)
+            account_cookie=self.strategy_id, init_cash=1000000, market_type=self.market_type)
         self.positions = self.acc.get_position(self.code)
 
         print(self.acc)
@@ -119,14 +125,12 @@ class QAStrategyCTABase():
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
 
         def x1(item):
-            #print(data)
+            # print(data)
             self._market_data.append(item)
             self.running_time = item.name[0]
             self.on_bar(item)
 
         data.data.apply(x1, axis=1)
-  
-            
 
     def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
         """[summary]
@@ -139,6 +143,9 @@ class QAStrategyCTABase():
         self.sub = subscriber(exchange='realtime_{}_{}'.format(
             frequence, code), host=data_host, port=data_port, user=data_user, password=data_password)
         self.sub.callback = self.callback
+
+    def subscribe_multi(self, codelist, exchange):
+        pass
 
     @property
     def old_data(self):
@@ -181,9 +188,9 @@ class QAStrategyCTABase():
         if self.isupdate:
             self.update()
             self.isupdate = False
-           
+
         self.update_account()
-        self.positions.on_price_change(float(new_bar['close'])) 
+        self.positions.on_price_change(float(new_bar['close']))
         self.on_bar(new_bar)
 
     def ind2str(self, ind, ind_type):
@@ -324,7 +331,7 @@ class QAStrategyCTABase():
                     json.dumps(order), routing_key=self.strategy_id)
 
                 self.acc.make_deal(order)
-
+                self.bar_order['{}_{}'.format(direction, offset)] = self.bar_id
                 try:
                     for user in self.subscriber_list:
                         QA.QA_util_log_info(self.subscriber_list)
@@ -344,10 +351,12 @@ class QAStrategyCTABase():
                 QA.QA_util_log_info('failed in ORDER_CHECK')
 
         elif self.running_mode == 'backtest':
+
+            self.bar_order['{}_{}'.format(direction, offset)] = self.bar_id
+
             self.acc.receive_simpledeal(
                 code=self.code, trade_time=self.running_time, trade_towards=towards, trade_amount=volume, trade_price=price, order_id=order_id)
             self.positions = self.acc.get_position(self.code)
-
 
     def update_account(self):
         if self.running_mode == 'sim':
@@ -361,7 +370,6 @@ class QAStrategyCTABase():
             self.updatetime = self.acc.dtstr
         elif self.running_mode == 'backtest':
             self.positions = self.acc.get_position(self.code)
-
 
     def get_exchange(self, code):
         return self.market_preset.get_exchange(code)
