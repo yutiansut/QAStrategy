@@ -121,6 +121,7 @@ class QAStrategyCTABase():
         def x1(item):
             #print(data)
             self._market_data.append(item)
+            self.running_time = item.name[0]
             self.on_bar(item)
 
         data.data.apply(x1, axis=1)
