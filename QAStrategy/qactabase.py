@@ -62,16 +62,22 @@ class QAStrategyCTABase():
         self.new_data = {}
         self.last_order_towards = {'BUY': '', 'SELL': ''}
 
-        self.market_type = MARKET_TYPE.FUTURE_CN if re.search(
-            r'[a-zA-z]+', self.code) else MARKET_TYPE.STOCK_CN
+        if isinstance(self.code, str):
+            self.market_type = MARKET_TYPE.FUTURE_CN if re.search(
+                r'[a-zA-z]+', self.code) else MARKET_TYPE.STOCK_CN
+        else:
+            self.market_type = MARKET_TYPE.FUTURE_CN if re.search(
+                r'[a-zA-z]+', self.code[0]) else MARKET_TYPE.STOCK_CN
 
         self.bar_order = {'BUY_OPEN': 0, 'SELL_OPEN': 0,
                           'BUY_CLOSE': 0, 'SELL_CLOSE': 0}
+
     @property
     def bar_id(self):
         return len(self._market_data)
 
-    def run_sim(self):
+    def _debug_sim(self):
+
         self.running_mode = 'sim'
 
         self._old_data = QA.QA_fetch_get_future_min('tdx', self.code.upper(), QA.QA_util_get_last_day(
@@ -100,7 +106,14 @@ class QAStrategyCTABase():
             {'strategy_id': self.strategy_id, 'taskid': self.taskid,
              'filepath': os.path.abspath(__file__), 'status': 200}, upsert=True)
 
+    def debug_sim(self):
+        self._debug_sim()
         threading.Thread(target=self.sub.start, daemon=True).start()
+
+    def run_sim(self):
+        self._debug_sim()
+
+        self.sub.start()
 
     def run_backtest(self):
         self.debug()
@@ -144,8 +157,14 @@ class QAStrategyCTABase():
             frequence, code), host=data_host, port=data_port, user=data_user, password=data_password)
         self.sub.callback = self.callback
 
-    def subscribe_multi(self, codelist, exchange):
-        pass
+    def subscribe_multi(self, codelist, frequence, data_host, data_port, data_user, data_password):
+
+        self.sub = subscriber_topic(exchange='realtime_{}'.format(
+            frequence), host=data_host, port=data_port, user=data_user, password=data_password)
+        for item in codelist:
+            self.sub.add_sub(exchange='realtime_{}'.format(
+                frequence), routing_key=item)
+        self.sub.callback = self.callback
 
     @property
     def old_data(self):
