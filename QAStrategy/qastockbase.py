@@ -132,6 +132,21 @@ class QAStrategyStockBase(QAStrategyCTABase):
         while True:
             pass
 
+    def update_account(self):
+        if self.running_mode == 'sim':
+            QA.QA_util_log_info('{} UPDATE ACCOUNT'.format(
+                str(datetime.datetime.now())))
+
+            self.accounts = self.acc.account_msg
+            self.orders = self.acc.orders
+            self.positions = self.acc.positions
+
+            self.trades = self.acc.trades
+            self.updatetime = self.acc.dtstr
+        elif self.running_mode == 'backtest':
+            #self.positions = self.acc.get_position(self.code)
+            self.positions = self.acc.positions
+
 
 if __name__ == '__main__':
     QAStrategyStockBase(code=['000001', '000002']).run_sim()
