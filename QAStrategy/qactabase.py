@@ -236,8 +236,7 @@ class QAStrategyCTABase():
         if self.new_data['datetime'][-9:] == '00.000000':
             self.isupdate = True
         self.acc.on_price_change(self.code, self.new_data['close'])
-        bar = pd.DataFrame([self.new_data]).set_index(['datetime', 'code']
-                                                      ).loc[:, ['open', 'high', 'low', 'close', 'volume']]
+        bar = pd.DataFrame([self.new_data]).set_index(['datetime', 'code'])#.loc[:, ['open', 'high', 'low', 'close', 'volume', 'tradetime']]
         now = datetime.datetime.now()
         if now.hour == 20 and now.minute == 59 and now.second < 10:
             self.daily_func()
