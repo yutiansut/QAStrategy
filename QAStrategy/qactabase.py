@@ -209,8 +209,8 @@ class QAStrategyCTABase():
             self.isupdate = False
 
         self.update_account()
-        self.positions.on_price_change(float(new_bar['close']))
-        self.on_bar(new_bar)
+        self.positions.on_price_change(float(self.new_data['close']))
+        self.on_bar(self.new_data)
 
     def ind2str(self, ind, ind_type):
         z = ind.tail(1).reset_index().to_dict(orient='records')[0]
