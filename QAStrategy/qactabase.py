@@ -61,7 +61,7 @@ class QAStrategyCTABase():
         self.isupdate = False
         self.new_data = {}
         self.last_order_towards = {'BUY': '', 'SELL': ''}
-
+        self.dt = ''
         if isinstance(self.code, str):
             self.market_type = MARKET_TYPE.FUTURE_CN if re.search(
                 r'[a-zA-z]+', self.code) else MARKET_TYPE.STOCK_CN
@@ -99,7 +99,7 @@ class QAStrategyCTABase():
 
         self.subscribe_data(self.code.lower(), self.frequence, self.data_host,
                             self.data_port, self.data_user, self.data_password)
-
+        
         self.add_subscriber('oL-C4w1HjuPRqTIRcZUyYR0QcLzo')
         self.database.strategy_schedule.job_control.update(
             {'strategy_id': self.strategy_id},
@@ -232,9 +232,11 @@ class QAStrategyCTABase():
         """
 
         self.new_data = json.loads(str(body, encoding='utf-8'))
-        self.running_time = self.new_data['datetime']
-        if float(self.new_data['datetime'][-9:]) == 0:
+        
+        if self.dt != self.new_data['datetime'][0:16] or len(self.market_data) < 1:
+            self.dt = self.new_data['datetime'][0:16]
             self.isupdate = True
+
         self.acc.on_price_change(self.code, self.new_data['close'])
         bar = pd.DataFrame([self.new_data]).set_index(['datetime', 'code'])#.loc[:, ['open', 'high', 'low', 'close', 'volume', 'tradetime']]
         now = datetime.datetime.now()
@@ -245,7 +247,7 @@ class QAStrategyCTABase():
         # res = self.job_control.find_one(
         #     {'strategy_id': self.strategy_id, 'strategy_id': self.strategy_id})
         # self.control_status(res)
-
+        self.running_time = self.new_data['datetime']
         self.upcoming_data(bar)
 
     def control_status(self, res):
