@@ -233,7 +233,7 @@ class QAStrategyCTABase():
 
         self.new_data = json.loads(str(body, encoding='utf-8'))
         self.running_time = self.new_data['datetime']
-        if self.new_data['datetime'][-9:] == '00.000000':
+        if float(self.new_data['datetime'][-9:]) == 0:
             self.isupdate = True
         self.acc.on_price_change(self.code, self.new_data['close'])
         bar = pd.DataFrame([self.new_data]).set_index(['datetime', 'code'])#.loc[:, ['open', 'high', 'low', 'close', 'volume', 'tradetime']]
