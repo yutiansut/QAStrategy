@@ -233,8 +233,9 @@ class QAStrategyCTABase():
 
         self.new_data = json.loads(str(body, encoding='utf-8'))
         
-        if self.dt != self.new_data['datetime'][0:16] or len(self.market_data) < 1:
-            self.dt = self.new_data['datetime'][0:16]
+        if self.dt != str(self.new_data['datetime'])[0:16]:
+
+            self.dt = str(self.new_data['datetime'])[0:16]
             self.isupdate = True
 
         self.acc.on_price_change(self.code, self.new_data['close'])
