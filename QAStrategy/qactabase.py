@@ -172,7 +172,7 @@ class QAStrategyCTABase():
 
     def update(self):
         self._old_data = self._market_data
-        self.on_1min_bar()
+        #self.on_1min_bar()
 
     @property
     def market_datetime(self):
@@ -234,7 +234,7 @@ class QAStrategyCTABase():
         self.new_data = json.loads(str(body, encoding='utf-8'))
         
         if self.dt != str(self.new_data['datetime'])[0:16]:
-
+            print('update!!!!!!!!!!!!')
             self.dt = str(self.new_data['datetime'])[0:16]
             self.isupdate = True
 
