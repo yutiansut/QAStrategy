@@ -313,7 +313,7 @@ class QAStrategyCTABase():
         pass
 
     def plot(self, name, data, format):
-
+        print(self.running_time)
         self._systemvar[name] = {'datetime': str(
             self.running_time), 'value': data, 'format': format}
 
