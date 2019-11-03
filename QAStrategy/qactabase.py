@@ -60,6 +60,8 @@ class QAStrategyCTABase():
 
         self.isupdate = False
         self.new_data = {}
+        self._systemvar = {}
+        self._signal = []
         self.last_order_towards = {'BUY': '', 'SELL': ''}
         self.dt = ''
         if isinstance(self.code, str):
@@ -99,7 +101,7 @@ class QAStrategyCTABase():
 
         self.subscribe_data(self.code.lower(), self.frequence, self.data_host,
                             self.data_port, self.data_user, self.data_password)
-        
+
         self.add_subscriber('oL-C4w1HjuPRqTIRcZUyYR0QcLzo')
         self.database.strategy_schedule.job_control.update(
             {'strategy_id': self.strategy_id},
@@ -171,8 +173,11 @@ class QAStrategyCTABase():
         return self._old_data
 
     def update(self):
+        """
+        此处是切换bar的时候的节点
+        """
         self._old_data = self._market_data
-        #self.on_1min_bar()
+        self._on_1min_bar()
 
     @property
     def market_datetime(self):
@@ -232,14 +237,15 @@ class QAStrategyCTABase():
         """
 
         self.new_data = json.loads(str(body, encoding='utf-8'))
-        
+
         if self.dt != str(self.new_data['datetime'])[0:16]:
             print('update!!!!!!!!!!!!')
             self.dt = str(self.new_data['datetime'])[0:16]
             self.isupdate = True
 
         self.acc.on_price_change(self.code, self.new_data['close'])
-        bar = pd.DataFrame([self.new_data]).set_index(['datetime', 'code'])#.loc[:, ['open', 'high', 'low', 'close', 'volume', 'tradetime']]
+        # .loc[:, ['open', 'high', 'low', 'close', 'volume', 'tradetime']]
+        bar = pd.DataFrame([self.new_data]).set_index(['datetime', 'code'])
         now = datetime.datetime.now()
         if now.hour == 20 and now.minute == 59 and now.second < 10:
             self.daily_func()
@@ -278,6 +284,11 @@ class QAStrategyCTABase():
     def on_bar(self, bar):
         raise NotImplementedError
 
+    def _on_1min_bar(self):
+        #raise NotImplementedError
+
+        self._signal.append(self._systemvar)
+
     def on_1min_bar(self):
         raise NotImplementedError
 
@@ -298,6 +309,10 @@ class QAStrategyCTABase():
 
     def risk_check(self):
         pass
+
+    def plot(self, name, data, format):
+
+        self._systemvar[name] = {'value': data, 'format': format}
 
     def check_order(self, direction, offset):
         """[summary]
