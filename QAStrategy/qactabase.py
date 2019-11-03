@@ -312,7 +312,8 @@ class QAStrategyCTABase():
 
     def plot(self, name, data, format):
 
-        self._systemvar[name] = {'datetime': str(self.running_time),value': data, 'format': format}
+        self._systemvar[name] = {'datetime': str(
+            self.running_time), 'value': data, 'format': format}
 
     def check_order(self, direction, offset):
         """[summary]
