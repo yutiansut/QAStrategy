@@ -5,6 +5,7 @@ import re
 import sys
 import threading
 import time
+import copy
 import uuid
 
 import pandas as pd
@@ -123,6 +124,16 @@ class QAStrategyCTABase():
 
         risk = QA_Risk(self.acc)
         risk.save()
+
+        try:
+            """add rank flow if exist
+
+            QARank是我们内部用于评价策略ELO的库 此处并不影响正常使用
+            """
+            from QARank import QA_Rank
+            QA_Rank(self.acc).send()
+        except:
+            pass
 
     def debug(self):
         self.running_mode = 'backtest'
@@ -288,8 +299,9 @@ class QAStrategyCTABase():
 
     def _on_1min_bar(self):
         #raise NotImplementedError
+        if len(self._systemvar.keys())>0:
+            self._signal.append(copy.deepcopy(self._systemvar))
 
-        self._signal.append(self._systemvar)
 
     def on_1min_bar(self):
         raise NotImplementedError
@@ -313,9 +325,17 @@ class QAStrategyCTABase():
         pass
 
     def plot(self, name, data, format):
-        print(self.running_time)
-        self._systemvar[name] = {'datetime': str(
-            self.running_time), 'value': data, 'format': format}
+        """ plot是可以存储你的临时信息的接口, 后期会接入可视化
+
+
+        
+        Arguments:
+            name {[type]} -- [description]
+            data {[type]} -- [description]
+            format {[type]} -- [description]
+        """
+        self._systemvar[name] = {'datetime': copy.deepcopy(str(
+            self.running_time)), 'value': data, 'format': format}
 
     def check_order(self, direction, offset):
         """[summary]
