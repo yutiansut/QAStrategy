@@ -26,7 +26,7 @@ from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 
 class QAStrategyCTABase():
     def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
-                 start='2019-01-01', end='2019-10-21',
+                 start='2019-01-01', end='2019-10-21', init_cash=1000000,
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                  taskid=None, mongo_ip=mongo_ip):
@@ -50,7 +50,7 @@ class QAStrategyCTABase():
 
         self.start = start
         self.end = end
-
+        self.init_cash = init_cash
         self.taskid = taskid
 
         self.running_time = ''
@@ -94,7 +94,7 @@ class QAStrategyCTABase():
         self.subscriber_client = self.database.subscribe
 
         self.acc = QIFI_Account(
-            username=self.strategy_id, password=self.strategy_id, trade_host=mongo_ip)
+            username=self.strategy_id, password=self.strategy_id, trade_host=mongo_ip, init_cash=self.init_cash)
         self.acc.initial()
 
         self.pub = publisher_routing(exchange='QAORDER_ROUTER', host=self.trade_host,
@@ -141,7 +141,7 @@ class QAStrategyCTABase():
         user = QA_User(username="admin", password='admin')
         port = user.new_portfolio(self.portfolio)
         self.acc = port.new_accountpro(
-            account_cookie=self.strategy_id, init_cash=1000000, market_type=self.market_type)
+            account_cookie=self.strategy_id, init_cash=self.init_cash, market_type=self.market_type)
         self.positions = self.acc.get_position(self.code)
 
         print(self.acc)
@@ -154,7 +154,7 @@ class QAStrategyCTABase():
             # print(data)
             self._on_1min_bar()
             self._market_data.append(item)
-            
+
             self.running_time = item.name[0]
             self.on_bar(item)
 
@@ -299,9 +299,8 @@ class QAStrategyCTABase():
 
     def _on_1min_bar(self):
         #raise NotImplementedError
-        if len(self._systemvar.keys())>0:
+        if len(self._systemvar.keys()) > 0:
             self._signal.append(copy.deepcopy(self._systemvar))
-
 
     def on_1min_bar(self):
         raise NotImplementedError
@@ -328,7 +327,7 @@ class QAStrategyCTABase():
         """ plot是可以存储你的临时信息的接口, 后期会接入可视化
 
 
-        
+
         Arguments:
             name {[type]} -- [description]
             data {[type]} -- [description]
