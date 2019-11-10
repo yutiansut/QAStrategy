@@ -437,7 +437,7 @@ class QAStrategyCTABase():
             self.update_account()
             return self.positions
         elif self.running_mode == 'backtest':
-            return self.acc.hold_available.get(self.code)
+            return self.acc.get_position(code)
 
     def get_cash(self):
         if self.running_mode == 'sim':
