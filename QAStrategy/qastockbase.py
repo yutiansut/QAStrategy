@@ -4,6 +4,7 @@
 """
 stock_base
 """
+import uuid
 import datetime
 import json
 import os
@@ -17,7 +18,7 @@ from qaenv import (eventmq_ip, eventmq_password, eventmq_port,
 import QUANTAXIS as QA
 from QUANTAXIS.QAARP import QA_Risk, QA_User
 from QUANTAXIS.QAEngine.QAThreadEngine import QA_Thread
-from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
+from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT, ORDER_DIRECTION
 from QAPUBSUB.consumer import subscriber_topic
 from QAPUBSUB.producer import publisher_routing
 from QAStrategy.qactabase import QAStrategyCTABase
@@ -188,6 +189,70 @@ class QAStrategyStockBase(QAStrategyCTABase):
             #self.positions = self.acc.get_position(self.code)
             self.positions = self.acc.positions
 
+    def send_order(self,  direction='BUY', offset='OPEN', code=None, price=3925, volume=10, order_id='',):
+
+        towards = eval('ORDER_DIRECTION.{}_{}'.format(direction, offset))
+        order_id = str(uuid.uuid4()) if order_id == '' else order_id
+
+        if self.market_type == QA.MARKET_TYPE.STOCK_CN:
+            """
+            在此对于股票的部分做一些转换
+            """
+            if towards == ORDER_DIRECTION.SELL_CLOSE:
+                towards = ORDER_DIRECTION.SELL
+            elif towards == ORDER_DIRECTION.BUY_OPEN:
+                towards = ORDER_DIRECTION.BUY
+
+        if isinstance(price, float):
+            pass
+        elif isinstance(price, pd.Series):
+            price = price.values[0]
+
+        if self.running_mode == 'sim':
+
+            QA.QA_util_log_info(
+                '============ {} SEND ORDER =================='.format(order_id))
+            QA.QA_util_log_info('direction{} offset {} price{} volume{}'.format(
+                direction, offset, price, volume))
+
+            if self.check_order(direction, offset):
+                self.last_order_towards = {'BUY': '', 'SELL': ''}
+                self.last_order_towards[direction] = offset
+                now = str(datetime.datetime.now())
+
+                order = self.acc.send_order(
+                    code=code, towards=towards, price=price, amount=volume, order_id=order_id)
+                order['topic'] = 'send_order'
+                self.pub.pub(
+                    json.dumps(order), routing_key=self.strategy_id)
+
+                self.acc.make_deal(order)
+                self.bar_order['{}_{}'.format(direction, offset)] = self.bar_id
+                try:
+                    for user in self.subscriber_list:
+                        QA.QA_util_log_info(self.subscriber_list)
+
+                        "oL-C4w2WlfyZ1vHSAHLXb2gvqiMI"
+                        """http://www.yutiansut.com/signal?user_id=oL-C4w1HjuPRqTIRcZUyYR0QcLzo&template=xiadan_report&\
+                                    strategy_id=test1&realaccount=133496&code=rb1910&order_direction=BUY&\
+                                    order_offset=OPEN&price=3600&volume=1&order_time=20190909
+                        """
+
+                        requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
+                            user, "xiadan_report", self.strategy_id, self.acc.user_id, self.code.lower(), direction, offset, price, volume, now))
+                except Exception as e:
+                    QA.QA_util_log_info(e)
+
+            else:
+                QA.QA_util_log_info('failed in ORDER_CHECK')
+
+        elif self.running_mode == 'backtest':
+
+            self.bar_order['{}_{}'.format(direction, offset)] = self.bar_id
+
+            self.acc.receive_simpledeal(
+                code=code, trade_time=self.running_time, trade_towards=towards, trade_amount=volume, trade_price=price, order_id=order_id)
+            #self.positions = self.acc.get_position(self.code)
 
 if __name__ == '__main__':
     QAStrategyStockBase(code=['000001', '000002']).run_sim()
