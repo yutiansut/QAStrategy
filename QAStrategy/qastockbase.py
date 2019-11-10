@@ -194,6 +194,14 @@ class QAStrategyStockBase(QAStrategyCTABase):
         towards = eval('ORDER_DIRECTION.{}_{}'.format(direction, offset))
         order_id = str(uuid.uuid4()) if order_id == '' else order_id
 
+        if self.market_type == QA.MARKET_TYPE.STOCK_CN:
+            """
+            在此对于股票的部分做一些转换
+            """
+            if towards == ORDER_DIRECTION.SELL_CLOSE:
+                towards = ORDER_DIRECTION.SELL
+            elif towards == ORDER_DIRECTION.BUY_OPEN:
+                towards = ORDER_DIRECTION.BUY
 
         if isinstance(price, float):
             pass
