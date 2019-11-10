@@ -155,7 +155,11 @@ class QAStrategyCTABase():
             self._on_1min_bar()
             self._market_data.append(item)
 
+            if item.name[0][0:10] != self.running_time[0:10]:
+                if self.market_type == QA.MARKET_TYPE.STOCK_CN:
+                    self.acc.settle()
             self.running_time = item.name[0]
+            
             self.on_bar(item)
 
         data.data.apply(x1, axis=1)
