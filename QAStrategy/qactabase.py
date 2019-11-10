@@ -342,14 +342,16 @@ class QAStrategyCTABase():
 
     def check_order(self, direction, offset):
         """[summary]
-        同方向不开仓
+        同方向不开仓  只对期货市场做限制
 
         buy - open
         sell - close
         """
-
-        if self.last_order_towards[direction] == str(offset):
-            return False
+        if self.market_type == QA.MARKET_TYPE.FUTURE_CN:
+            if self.last_order_towards[direction] == str(offset):
+                return False
+            else:
+                return True
         else:
             return True
 
@@ -364,7 +366,7 @@ class QAStrategyCTABase():
         self.send_order(direction=direction, offset=offset,
                         volume=trade_amount, price=trade_price, order_id=QA.QA_util_random_with_topic(self.strategy_id))
 
-    def send_order(self,  direction='BUY', offset='OPEN', price=3925, volume=10, order_id=''):
+    def send_order(self,  direction='BUY', offset='OPEN', price=3925, volume=10, order_id='',):
 
         towards = eval('ORDER_DIRECTION.{}_{}'.format(direction, offset))
         order_id = str(uuid.uuid4()) if order_id == '' else order_id
