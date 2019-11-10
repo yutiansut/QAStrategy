@@ -15,6 +15,9 @@ from qaenv import (eventmq_ip, eventmq_password, eventmq_port,
                    eventmq_username, mongo_ip)
 
 import QUANTAXIS as QA
+from QUANTAXIS.QAARP import QA_Risk, QA_User
+from QUANTAXIS.QAEngine.QAThreadEngine import QA_Thread
+from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 from QAPUBSUB.consumer import subscriber_topic
 from QAPUBSUB.producer import publisher_routing
 from QAStrategy.qactabase import QAStrategyCTABase
@@ -23,7 +26,7 @@ from QIFIAccount import QIFI_Account
 
 class QAStrategyStockBase(QAStrategyCTABase):
 
-    def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
+    def __init__(self, code=['000001'], frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
                  start='2019-01-01', end='2019-10-21',
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
@@ -131,6 +134,38 @@ class QAStrategyStockBase(QAStrategyCTABase):
     def run(self):
         while True:
             pass
+
+
+    def debug(self):
+        self.running_mode = 'backtest'
+        self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
+        user = QA_User(username="admin", password='admin')
+        port = user.new_portfolio(self.portfolio)
+        self.acc = port.new_accountpro(
+            account_cookie=self.strategy_id, init_cash=self.init_cash, market_type=self.market_type)
+        #self.positions = self.acc.get_position(self.code)
+
+        print(self.acc)
+
+        print(self.acc.market_type)
+        data = QA.QA_quotation(self.code, self.start, self.end, source=QA.DATASOURCE.MONGO,
+                               frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
+
+        def x1(item):
+            # print(data)
+            self._on_1min_bar()
+            self._market_data.append(item)
+
+            if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
+                if self.market_type == QA.MARKET_TYPE.STOCK_CN:
+                    print('backtest: Settle!')
+                    self.acc.settle()
+                    
+            self.running_time = str(item.name[0])
+            self.on_bar(item)
+
+        data.data.apply(x1, axis=1)
+
 
     def update_account(self):
         if self.running_mode == 'sim':
