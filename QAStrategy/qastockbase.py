@@ -148,7 +148,7 @@ class QAStrategyStockBase(QAStrategyCTABase):
         print(self.acc)
 
         print(self.acc.market_type)
-        data = QA.QA_quotation(self.code.upper(), self.start, self.end, source=QA.DATASOURCE.MONGO,
+        data = QA.QA_quotation(self.code, self.start, self.end, source=QA.DATASOURCE.MONGO,
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
 
         def x1(item):
