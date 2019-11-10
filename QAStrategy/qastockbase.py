@@ -136,6 +136,12 @@ class QAStrategyStockBase(QAStrategyCTABase):
             pass
 
 
+    def get_code_marketdata(self, code):
+        return self.market_data.loc[(slice(None), code),:]
+
+    def get_current_marketdata(self):
+        return self.market_data.loc[(self.running_time, slice(None)),:]
+
     def debug(self):
         self.running_mode = 'backtest'
         self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
