@@ -9,7 +9,7 @@ import datetime
 import json
 import os
 import threading
-
+import requests
 import pandas as pd
 import pymongo
 from qaenv import (eventmq_ip, eventmq_password, eventmq_port,
@@ -28,17 +28,18 @@ from QIFIAccount import QIFI_Account
 class QAStrategyStockBase(QAStrategyCTABase):
 
     def __init__(self, code=['000001'], frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
-                 start='2019-01-01', end='2019-10-21',
+                 start='2019-01-01', end='2019-10-21', send_wx=False,
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                  taskid=None, mongo_ip=mongo_ip):
         super().__init__(code=code, frequence=frequence, strategy_id=strategy_id, risk_check_gap=risk_check_gap, portfolio=portfolio,
-                         start=start, end=end,
+                         start=start, end=end,send_wx=send_wx,
                          data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                          trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                          taskid=taskid, mongo_ip=mongo_ip)
 
         self.code = code
+        self.send_wx = send_wx
 
     def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
         """[summary]
@@ -99,7 +100,7 @@ class QAStrategyStockBase(QAStrategyCTABase):
                                                       ).loc[:, ['open', 'high', 'low', 'close', 'volume']]
         self.upcoming_data(bar)
 
-    def run_sim(self):
+    def _debug_sim(self):
         self.running_mode = 'sim'
 
         self._old_data = QA.QA_fetch_stock_min(self.code, QA.QA_util_get_last_day(
@@ -123,7 +124,6 @@ class QAStrategyStockBase(QAStrategyCTABase):
         self.subscribe_data(self.code, self.frequence, self.data_host,
                             self.data_port, self.data_user, self.data_password)
 
-        self.add_subscriber('oL-C4w1HjuPRqTIRcZUyYR0QcLzo')
         self.database.strategy_schedule.job_control.update(
             {'strategy_id': self.strategy_id},
             {'strategy_id': self.strategy_id, 'taskid': self.taskid,
@@ -136,12 +136,11 @@ class QAStrategyStockBase(QAStrategyCTABase):
         while True:
             pass
 
-
     def get_code_marketdata(self, code):
-        return self.market_data.loc[(slice(None), code),:]
+        return self.market_data.loc[(slice(None), code), :]
 
     def get_current_marketdata(self):
-        return self.market_data.loc[(self.running_time, slice(None)),:]
+        return self.market_data.loc[(self.running_time, slice(None)), :]
 
     def debug(self):
         self.running_mode = 'backtest'
@@ -167,12 +166,11 @@ class QAStrategyStockBase(QAStrategyCTABase):
                 if self.market_type == QA.MARKET_TYPE.STOCK_CN:
                     print('backtest: Settle!')
                     self.acc.settle()
-                    
+
             self.running_time = str(item.name[0])
             self.on_bar(item)
 
         data.data.apply(x1, axis=1)
-
 
     def update_account(self):
         if self.running_mode == 'sim':
@@ -228,20 +226,20 @@ class QAStrategyStockBase(QAStrategyCTABase):
 
                 self.acc.make_deal(order)
                 self.bar_order['{}_{}'.format(direction, offset)] = self.bar_id
-                try:
+                if self.send_wx:
                     for user in self.subscriber_list:
                         QA.QA_util_log_info(self.subscriber_list)
+                        try:
+                            "oL-C4w2WlfyZ1vHSAHLXb2gvqiMI"
+                            """http://www.yutiansut.com/signal?user_id=oL-C4w1HjuPRqTIRcZUyYR0QcLzo&template=xiadan_report&\
+                                        strategy_id=test1&realaccount=133496&code=rb1910&order_direction=BUY&\
+                                        order_offset=OPEN&price=3600&volume=1&order_time=20190909
+                            """
 
-                        "oL-C4w2WlfyZ1vHSAHLXb2gvqiMI"
-                        """http://www.yutiansut.com/signal?user_id=oL-C4w1HjuPRqTIRcZUyYR0QcLzo&template=xiadan_report&\
-                                    strategy_id=test1&realaccount=133496&code=rb1910&order_direction=BUY&\
-                                    order_offset=OPEN&price=3600&volume=1&order_time=20190909
-                        """
-
-                        requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
-                            user, "xiadan_report", self.strategy_id, self.acc.user_id, self.code.lower(), direction, offset, price, volume, now))
-                except Exception as e:
-                    QA.QA_util_log_info(e)
+                            requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
+                                user, "xiadan_report", self.strategy_id, self.acc.user_id, code, direction, offset, price, volume, now))
+                        except Exception as e:
+                            QA.QA_util_log_info(e)
 
             else:
                 QA.QA_util_log_info('failed in ORDER_CHECK')
@@ -253,6 +251,7 @@ class QAStrategyStockBase(QAStrategyCTABase):
             self.acc.receive_simpledeal(
                 code=code, trade_time=self.running_time, trade_towards=towards, trade_amount=volume, trade_price=price, order_id=order_id)
             #self.positions = self.acc.get_position(self.code)
+
 
 if __name__ == '__main__':
     QAStrategyStockBase(code=['000001', '000002']).run_sim()

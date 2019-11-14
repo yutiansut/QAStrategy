@@ -26,7 +26,7 @@ from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 
 class QAStrategyCTABase():
     def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
-                 start='2019-01-01', end='2019-10-21', init_cash=1000000,
+                 start='2019-01-01', end='2019-10-21', init_cash=1000000, send_wx = False,
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                  taskid=None, mongo_ip=mongo_ip):
@@ -63,6 +63,7 @@ class QAStrategyCTABase():
         self.new_data = {}
         self._systemvar = {}
         self._signal = []
+        self.send_wx = send_wx
         self.last_order_towards = {'BUY': '', 'SELL': ''}
         self.dt = ''
         if isinstance(self.code, str):
@@ -103,7 +104,6 @@ class QAStrategyCTABase():
         self.subscribe_data(self.code.lower(), self.frequence, self.data_host,
                             self.data_port, self.data_user, self.data_password)
 
-        self.add_subscriber('oL-C4w1HjuPRqTIRcZUyYR0QcLzo')
         self.database.strategy_schedule.job_control.update(
             {'strategy_id': self.strategy_id},
             {'strategy_id': self.strategy_id, 'taskid': self.taskid,
@@ -396,20 +396,20 @@ class QAStrategyCTABase():
 
                 self.acc.make_deal(order)
                 self.bar_order['{}_{}'.format(direction, offset)] = self.bar_id
-                try:
+                if self.send_wx:
                     for user in self.subscriber_list:
                         QA.QA_util_log_info(self.subscriber_list)
+                        try:
+                            "oL-C4w2WlfyZ1vHSAHLXb2gvqiMI"
+                            """http://www.yutiansut.com/signal?user_id=oL-C4w1HjuPRqTIRcZUyYR0QcLzo&template=xiadan_report&\
+                                        strategy_id=test1&realaccount=133496&code=rb1910&order_direction=BUY&\
+                                        order_offset=OPEN&price=3600&volume=1&order_time=20190909
+                            """
 
-                        "oL-C4w2WlfyZ1vHSAHLXb2gvqiMI"
-                        """http://www.yutiansut.com/signal?user_id=oL-C4w1HjuPRqTIRcZUyYR0QcLzo&template=xiadan_report&\
-                                    strategy_id=test1&realaccount=133496&code=rb1910&order_direction=BUY&\
-                                    order_offset=OPEN&price=3600&volume=1&order_time=20190909
-                        """
-
-                        requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
-                            user, "xiadan_report", self.strategy_id, self.acc.user_id, self.code.lower(), direction, offset, price, volume, now))
-                except Exception as e:
-                    QA.QA_util_log_info(e)
+                            requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
+                                user, "xiadan_report", self.strategy_id, self.acc.user_id, self.code.lower(), direction, offset, price, volume, now))
+                        except Exception as e:
+                            QA.QA_util_log_info(e)
 
             else:
                 QA.QA_util_log_info('failed in ORDER_CHECK')
