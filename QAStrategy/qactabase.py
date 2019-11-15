@@ -152,13 +152,15 @@ class QAStrategyCTABase():
 
         def x1(item):
             # print(data)
-            self._on_1min_bar()
-            self._market_data.append(item)
+
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
+                self.on_dailyclose()
+                self.on_dailyopen()
                 if self.market_type == QA.MARKET_TYPE.STOCK_CN:
                     print('backtest: Settle!')
                     self.acc.settle()
-                    
+            self._on_1min_bar()
+            self._market_data.append(item)
             self.running_time = str(item.name[0])
             self.on_bar(item)
 
@@ -297,6 +299,12 @@ class QAStrategyCTABase():
 
     def load_strategy(self):
         raise NotImplementedError
+
+    def on_dailyopen(self):
+        pass
+
+    def on_dailyclose(self):
+        pass
 
     def on_bar(self, bar):
         raise NotImplementedError

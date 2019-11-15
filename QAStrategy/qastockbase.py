@@ -136,6 +136,7 @@ class QAStrategyStockBase(QAStrategyCTABase):
         while True:
             pass
 
+
     def get_code_marketdata(self, code):
         return self.market_data.loc[(slice(None), code), :]
 

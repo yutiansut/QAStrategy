@@ -37,5 +37,32 @@ class CCI(QAStrategyCTABase):
 
 
 if __name__ == '__main__':
-    CCI(code='RB2001', frequence='1min',
-        strategy_id='a3916de0-bd28-4b9c-bea1-94d91f1744ac').run()
+
+    strategy = CCI(code='RB2001', frequence='1min',
+                   strategy_id='a3916de0-bd28-4b9c-bea1-94d91f1744ac')
+    """测试  一般在jupyter中用
+
+    
+    """
+    strategy.debug()
+
+    """
+    
+    之后你可以用strategy.acc.history_table 这些以前qa回测的东西来查看
+    """
+
+    """ 回测
+    """
+    strategy.run_backtest()
+
+    """ 模拟
+    """
+    strategy = CCI(code='rb2001', frequence='1min',
+                   strategy_id='a3916de0-bd28-4b9c-bea1-94d91f1744ac', send_wx=True)
+    strategy.debug_sim()
+    strategy.add_subscriber("你的wechatid 在QARPO中获取")
+
+    """debugsim是非阻塞的
+    
+    在进程中 用run_sim
+    """
