@@ -166,6 +166,38 @@ class QAStrategyCTABase():
 
         data.data.apply(x1, axis=1)
 
+    def debug_t0(self):
+        self.running_mode = 'backtest'
+        self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
+        user = QA_User(username="admin", password='admin')
+        port = user.new_portfolio(self.portfolio)
+        self.acc = port.new_accountpro(
+            account_cookie=self.strategy_id, init_cash=self.init_cash, init_hold={self.code: 100000},
+            market_type=self.market_type, running_environment=RUNNING_ENVIRONMENT.TZERO)
+        self.positions = self.acc.get_position(self.code)
+
+        print(self.acc)
+
+        print(self.acc.market_type)
+        data = QA.QA_quotation(self.code.upper(), self.start, self.end, source=QA.DATASOURCE.MONGO,
+                               frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
+
+        def x1(item):
+            # print(data)
+
+            if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
+                self.on_dailyclose()
+                self.on_dailyopen()
+                if self.market_type == QA.MARKET_TYPE.STOCK_CN:
+                    print('backtest: Settle!')
+                    self.acc.settle()
+            self._on_1min_bar()
+            self._market_data.append(item)
+            self.running_time = str(item.name[0])
+            self.on_bar(item)
+
+        data.data.apply(x1, axis=1)
+
     def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
         """[summary]
 
