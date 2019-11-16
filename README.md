@@ -23,6 +23,16 @@ QAStrategy 面向场景, 主要有3个策略基类
 
 
 
+在每个策略基类中 有一些是 大家共享的公共变量  还有一些是基类自己的变量
+
+1. self.market_data 此变量为公共变量 记录策略的历史数据 [回测/实时均可用]
+
+2. self.send_order 此函数为公共函数 但是在不同的基类中, 参数不同
+
+3. self.acc 此变量为公共变量
+
+
+
 ```python
 
 from QAStrategy import QAStrategyCTABase
@@ -32,7 +42,7 @@ class CCI(QAStrategyCTABase):
     def on_bar(self, bar):
         """你的大部分策略逻辑都是在此写的
         """
-        res = self.cci()
+        res = self.cci()  
         print(res.iloc[-1])
         if res.CCI[-1] < -100:
             print('LONG')
