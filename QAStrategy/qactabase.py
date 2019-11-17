@@ -188,7 +188,7 @@ class QAStrategyCTABase():
 
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
                 self.on_dailyclose()
-                for item in self.acc.close_positions_order:
+                for order in self.acc.close_positions_order:
                     order.trade('closebySys',order.price,order.amount, order.datetime)
                 self.on_dailyopen()
                 if self.market_type == QA.MARKET_TYPE.STOCK_CN:
