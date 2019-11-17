@@ -12,6 +12,8 @@ QAStrategy 是QUANTAXIS 第一个面向交易员/策略开发者的 用户友好
 QAStrategy 面向场景, 主要有3个策略基类
 
 
+(PS: 股票日内回转(有底仓的情况) QAStrategy也一并支持, 默认给予10万股, 使用debug_t0()/run_backtestt0())
+
 - QAStrategyCTABase  cta模板/ 单标的模板   支持股票/期货
 
 - QAStrategyStockBase  股票池模板/ 多标的模板  支持股票/期货

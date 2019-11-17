@@ -26,7 +26,7 @@ from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 
 class QAStrategyCTABase():
     def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
-                 start='2019-01-01', end='2019-10-21', init_cash=1000000, send_wx = False,
+                 start='2019-01-01', end='2019-10-21', init_cash=1000000, send_wx=False,
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                  taskid=None, mongo_ip=mongo_ip):
@@ -172,7 +172,8 @@ class QAStrategyCTABase():
         user = QA_User(username="admin", password='admin')
         port = user.new_portfolio(self.portfolio)
         self.acc = port.new_accountpro(
-            account_cookie=self.strategy_id, init_cash=self.init_cash, init_hold={self.code: 100000},
+            account_cookie=self.strategy_id, init_cash=self.init_cash, init_hold={
+                self.code: 100000},
             market_type=self.market_type, running_environment=RUNNING_ENVIRONMENT.TZERO)
         self.positions = self.acc.get_position(self.code)
 
@@ -187,6 +188,8 @@ class QAStrategyCTABase():
 
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
                 self.on_dailyclose()
+                for item in self.acc.close_positions_order:
+                    order.trade('closebySys',order.price,order.amount, order.datetime)
                 self.on_dailyopen()
                 if self.market_type == QA.MARKET_TYPE.STOCK_CN:
                     print('backtest: Settle!')
@@ -458,8 +461,12 @@ class QAStrategyCTABase():
 
             self.bar_order['{}_{}'.format(direction, offset)] = self.bar_id
 
-            self.acc.receive_simpledeal(
-                code=self.code, trade_time=self.running_time, trade_towards=towards, trade_amount=volume, trade_price=price, order_id=order_id)
+            if self.market_type == 'stock_cn':
+                order = self.acc.send_order(code=self.code ,amount=volume, time=self.running_time, towards=towards, price=price)
+                order.trade(order.order_id,order.price,order.amount, order.datetime)
+            else:
+                self.acc.receive_simpledeal(
+                    code=self.code, trade_time=self.running_time, trade_towards=towards, trade_amount=volume, trade_price=price, order_id=order_id, realorder_id=order_id, trade_id=order_id)
             self.positions = self.acc.get_position(self.code)
 
     def update_account(self):
