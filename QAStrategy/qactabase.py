@@ -58,6 +58,7 @@ class QAStrategyCTABase():
         self.market_preset = QA.QAARP.MARKET_PRESET()
         self._market_data = []
         self.risk_check_gap = risk_check_gap
+        self.latest_price = {}
 
         self.isupdate = False
         self.new_data = {}
@@ -156,6 +157,7 @@ class QAStrategyCTABase():
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
                 self.on_dailyclose()
                 self.on_dailyopen()
+                self.latest_price[item.name[1]] = item['close'][0]
                 if self.market_type == QA.MARKET_TYPE.STOCK_CN:
                     print('backtest: Settle!')
                     self.acc.settle()
@@ -189,7 +191,8 @@ class QAStrategyCTABase():
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
                 self.on_dailyclose()
                 for order in self.acc.close_positions_order:
-                    order.trade('closebySys',order.price,order.amount, order.datetime)
+                    order.trade('closebySys', order.price,
+                                order.amount, order.datetime)
                 self.on_dailyopen()
                 if self.market_type == QA.MARKET_TYPE.STOCK_CN:
                     print('backtest: Settle!')
@@ -291,7 +294,7 @@ class QAStrategyCTABase():
         """
 
         self.new_data = json.loads(str(body, encoding='utf-8'))
-
+        self.latest_price[self.code] = self.new_data['close']
         if self.dt != str(self.new_data['datetime'])[0:16]:
             print('update!!!!!!!!!!!!')
             self.dt = str(self.new_data['datetime'])[0:16]
@@ -398,6 +401,9 @@ class QAStrategyCTABase():
         else:
             return True
 
+    def on_ordererror(self, direction, offset, price, volume):
+        print('order Error ')
+
     def receive_simpledeal(self,
                            code: str,
                            trade_time,
@@ -420,50 +426,49 @@ class QAStrategyCTABase():
             price = price.values[0]
 
         if self.running_mode == 'sim':
+            # 在此处拦截无法下单的订单
+            if (direction == 'BUY' and self.latest_price[self.code] <= price) or (direction == 'SELL' and self.latest_price[self.code] >= price):
+                QA.QA_util_log_info(
+                    '============ {} SEND ORDER =================='.format(order_id))
+                QA.QA_util_log_info('direction{} offset {} price{} volume{}'.format(
+                    direction, offset, price, volume))
 
-            QA.QA_util_log_info(
-                '============ {} SEND ORDER =================='.format(order_id))
-            QA.QA_util_log_info('direction{} offset {} price{} volume{}'.format(
-                direction, offset, price, volume))
+                if self.check_order(direction, offset):
+                    self.last_order_towards = {'BUY': '', 'SELL': ''}
+                    self.last_order_towards[direction] = offset
+                    now = str(datetime.datetime.now())
 
-            if self.check_order(direction, offset):
-                self.last_order_towards = {'BUY': '', 'SELL': ''}
-                self.last_order_towards[direction] = offset
-                now = str(datetime.datetime.now())
+                    order = self.acc.send_order(
+                        code=self.code, towards=towards, price=price, amount=volume, order_id=order_id)
+                    order['topic'] = 'send_order'
+                    self.pub.pub(
+                        json.dumps(order), routing_key=self.strategy_id)
 
-                order = self.acc.send_order(
-                    code=self.code, towards=towards, price=price, amount=volume, order_id=order_id)
-                order['topic'] = 'send_order'
-                self.pub.pub(
-                    json.dumps(order), routing_key=self.strategy_id)
+                    self.acc.make_deal(order)
+                    self.bar_order['{}_{}'.format(
+                        direction, offset)] = self.bar_id
+                    if self.send_wx:
+                        for user in self.subscriber_list:
+                            QA.QA_util_log_info(self.subscriber_list)
+                            try:
+                                requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
+                                    user, "xiadan_report", self.strategy_id, self.acc.user_id, self.code.lower(), direction, offset, price, volume, now))
+                            except Exception as e:
+                                QA.QA_util_log_info(e)
 
-                self.acc.make_deal(order)
-                self.bar_order['{}_{}'.format(direction, offset)] = self.bar_id
-                if self.send_wx:
-                    for user in self.subscriber_list:
-                        QA.QA_util_log_info(self.subscriber_list)
-                        try:
-                            "oL-C4w2WlfyZ1vHSAHLXb2gvqiMI"
-                            """http://www.yutiansut.com/signal?user_id=oL-C4w1HjuPRqTIRcZUyYR0QcLzo&template=xiadan_report&\
-                                        strategy_id=test1&realaccount=133496&code=rb1910&order_direction=BUY&\
-                                        order_offset=OPEN&price=3600&volume=1&order_time=20190909
-                            """
-
-                            requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
-                                user, "xiadan_report", self.strategy_id, self.acc.user_id, self.code.lower(), direction, offset, price, volume, now))
-                        except Exception as e:
-                            QA.QA_util_log_info(e)
-
+                else:
+                    QA.QA_util_log_info('failed in ORDER_CHECK')
             else:
-                QA.QA_util_log_info('failed in ORDER_CHECK')
-
+                self.on_ordererror(direction, offset, price, volume)
         elif self.running_mode == 'backtest':
 
             self.bar_order['{}_{}'.format(direction, offset)] = self.bar_id
 
             if self.market_type == 'stock_cn':
-                order = self.acc.send_order(code=self.code ,amount=volume, time=self.running_time, towards=towards, price=price)
-                order.trade(order.order_id,order.price,order.amount, order.datetime)
+                order = self.acc.send_order(
+                    code=self.code, amount=volume, time=self.running_time, towards=towards, price=price)
+                order.trade(order.order_id, order.price,
+                            order.amount, order.datetime)
             else:
                 self.acc.receive_simpledeal(
                     code=self.code, trade_time=self.running_time, trade_towards=towards, trade_amount=volume, trade_price=price, order_id=order_id, realorder_id=order_id, trade_id=order_id)
