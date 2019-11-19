@@ -153,7 +153,7 @@ class QAStrategyCTABase():
 
         def x1(item):
             # print(data)
-            self.latest_price[item.name[1]] = item['close'][0]
+            self.latest_price[item.name[1]] = item['close']
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
                 self.on_dailyclose()
                 self.on_dailyopen()
@@ -186,7 +186,7 @@ class QAStrategyCTABase():
 
         def x1(item):
             # print(data)
-            self.latest_price[item.name[1]] = item['close'][0]
+            self.latest_price[item.name[1]] = item['close']
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
                 self.on_dailyclose()
                 for order in self.acc.close_positions_order:
@@ -220,7 +220,7 @@ class QAStrategyCTABase():
         data = data.reset_index().set_index(['datetime', 'code'])
 
         def x1(item):
-            self.latest_price[item.name[1]] = item['close'][0]
+            self.latest_price[item.name[1]] = item['close']
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
                 self.on_dailyclose()
                 self.on_dailyopen()
@@ -248,7 +248,7 @@ class QAStrategyCTABase():
         data = data.reset_index().set_index(['datetime', 'code'])
 
         def x1(item):
-            self.latest_price[item.name[1]] = item['close'][0]
+            self.latest_price[item.name[1]] = item['close']
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
                 self.on_dailyclose()
                 self.on_dailyopen()
