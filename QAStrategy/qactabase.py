@@ -153,11 +153,10 @@ class QAStrategyCTABase():
 
         def x1(item):
             # print(data)
-
+            self.latest_price[item.name[1]] = item['close'][0]
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
                 self.on_dailyclose()
                 self.on_dailyopen()
-                self.latest_price[item.name[1]] = item['close'][0]
                 if self.market_type == QA.MARKET_TYPE.STOCK_CN:
                     print('backtest: Settle!')
                     self.acc.settle()
@@ -187,7 +186,7 @@ class QAStrategyCTABase():
 
         def x1(item):
             # print(data)
-
+            self.latest_price[item.name[1]] = item['close'][0]
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
                 self.on_dailyclose()
                 for order in self.acc.close_positions_order:
@@ -203,6 +202,62 @@ class QAStrategyCTABase():
             self.on_bar(item)
 
         data.data.apply(x1, axis=1)
+
+    def debug_currenttick(self, freq):
+        data = QA.QA_fetch_get_future_transaction_realtime(
+            'tdx', self.code.upper())
+        self.running_mode = 'backtest'
+        self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
+        user = QA_User(username="admin", password='admin')
+        port = user.new_portfolio(self.portfolio)
+        self.strategy_id = self.strategy_id + 'currenttick_{}_{}'.format(str(datetime.date.today()), freq)
+        self.acc = port.new_accountpro(
+            account_cookie=self.strategy_id, init_cash=self.init_cash, market_type=self.market_type)
+        self.positions = self.acc.get_position(self.code)
+        data = data.assign(price=data.price/1000).loc[:, ['code', 'price', 'volume']].resample(
+            freq).apply({'code': 'last', 'price': 'ohlc', 'volume': 'sum'}).dropna()
+        data.columns = data.columns.droplevel(0)
+        data = data.reset_index().set_index(['datetime', 'code'])
+
+        def x1(item):
+            self.latest_price[item.name[1]] = item['close'][0]
+            if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
+                self.on_dailyclose()
+                self.on_dailyopen()
+            self._on_1min_bar()
+            self._market_data.append(item)
+            self.running_time = str(item.name[0])
+            self.on_bar(item)
+
+        data.apply(x1, axis=1)
+
+    def debug_histick(self, freq):
+        data = QA.QA_fetch_get_future_transaction(
+            'tdx', self.code.upper(), self.start, self.end)
+        self.running_mode = 'backtest'
+        self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
+        user = QA_User(username="admin", password='admin')
+        port = user.new_portfolio(self.portfolio)
+        self.strategy_id = self.strategy_id + 'histick_{}_{}_{}'.format(self.start, self.end, freq)
+        self.acc = port.new_accountpro(
+            account_cookie=self.strategy_id, init_cash=self.init_cash, market_type=self.market_type)
+        self.positions = self.acc.get_position(self.code)
+        data = data.assign(price=data.price/1000).loc[:, ['code', 'price', 'volume']].resample(
+            freq).apply({'code': 'last', 'price': 'ohlc', 'volume': 'sum'}).dropna()
+        data.columns = data.columns.droplevel(0)
+        data = data.reset_index().set_index(['datetime', 'code'])
+
+        def x1(item):
+            self.latest_price[item.name[1]] = item['close'][0]
+            if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
+                self.on_dailyclose()
+                self.on_dailyopen()
+            self._on_1min_bar()
+            self._market_data.append(item)
+            self.running_time = str(item.name[0])
+            self.on_bar(item)
+
+        data.apply(x1, axis=1)
 
     def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
         """[summary]
