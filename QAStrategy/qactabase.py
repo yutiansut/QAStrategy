@@ -77,6 +77,9 @@ class QAStrategyCTABase():
         self.bar_order = {'BUY_OPEN': 0, 'SELL_OPEN': 0,
                           'BUY_CLOSE': 0, 'SELL_CLOSE': 0}
 
+        self._num_cached = 120            
+        self._cached_data = []      
+
     @property
     def bar_id(self):
         return len(self._market_data)
@@ -267,9 +270,25 @@ class QAStrategyCTABase():
             frequence {[type]} -- [description]
         """
 
-        self.sub = subscriber(exchange='realtime_{}_{}'.format(
-            frequence, code), host=data_host, port=data_port, user=data_user, password=data_password)
-        self.sub.callback = self.callback
+        if frequence.endswith('min'):
+
+            self.sub = subscriber(exchange='realtime_{}_{}'.format(
+                frequence, code), host=data_host, port=data_port, user=data_user, password=data_password)
+            self.sub.callback = self.callback
+        elif frequence.endswith('s'):
+
+            
+            import re
+            self._num_cached  = 2*int(re.findall(r'\d+',self.frequence)[0])
+            self.sub = subscriber(exchange='realtime_min_{}'.format(
+                code), host=data_host, port=data_port, user=data_user, password=data_password)
+            self.sub.callback = self.second_callback
+        elif frequence.endswith('tick'):
+            self._num_cached = 1
+            self.sub = subscriber(exchange='realtime_min_{}'.format(
+                code), host=data_host, port=data_port, user=data_user, password=data_password)
+            self.sub.callback = self.tick_callback
+
 
     def subscribe_multi(self, codelist, frequence, data_host, data_port, data_user, data_password):
 
@@ -333,6 +352,76 @@ class QAStrategyCTABase():
         z = ind.tail(1).reset_index().to_dict(orient='records')[0]
         return json.dumps({'topic': ind_type, 'code': self.code, 'type': self.frequence, 'data': z})
 
+    def second_callback(self, a, b, c, body):
+        """在strategy的callback中,我们需要的是
+
+        1. 更新数据
+        2. 更新bar
+        3. 更新策略状态
+        4. 推送事件
+
+        Arguments:
+            a {[type]} -- [description]
+            b {[type]} -- [description]
+            c {[type]} -- [description]
+            body {[type]} -- [description]
+        
+        second ==> 2*second tick
+        
+        b'{"ask_price_1": 4145.0, "ask_price_2": 0, "ask_price_3": 0, "ask_price_4": 0, "ask_price_5": 0, 
+        "ask_volume_1": 69, "ask_volume_2": 0, "ask_volume_3": 0, "ask_volume_4": 0, "ask_volume_5": 0, 
+        "average_price": 61958.14258714826, 
+        "bid_price_1": 4143.0, "bid_price_2": 0, "bid_price_3": 0, "bid_price_4": 0, "bid_price_5": 0, 
+        "bid_volume_1": 30, "bid_volume_2": 0, "bid_volume_3": 0, "bid_volume_4": 0, "bid_volume_5": 0, 
+        "datetime": "2019-11-20 01:57:08", "exchange": "SHFE", "gateway_name": "ctp", 
+        "high_price": 4152.0, "last_price": 4144.0, "last_volume": 0,
+        "limit_down": 3872.0, "limit_up": 4367.0, "local_symbol": "ag1912.SHFE", 
+        "low_price": 4105.0, "name": "", "open_interest": 277912.0, "open_price": 4140.0, 
+        "preSettlementPrice": 4120.0, "pre_close": 4155.0, 
+        "symbol": "ag1912", 
+        "volume": 114288}'
+
+
+        tick 会基于热数据的量 self._num_cached 来判断更新/重采样
+        
+        """
+
+        self.new_data = json.loads(str(body, encoding='utf-8'))
+
+        self._cached_data.append(self.new_data)
+        self.latest_price[self.code] = self.new_data['last_price']
+
+
+        # if len(self._cached_data) == self._num_cached:
+        #     self.isupdate = True
+
+
+        if len(self._cached_data) > 3*self._num_cached:
+            # 控制缓存数据量
+            self._cached_data = self._cached_data[self._num_cached:]
+
+        data= pd.DataFrame(self._cached_data).loc[:,['datetime','last_price', 'volume']]
+        data = data.assign(datetime= pd.to_datetime(data.datetime)).set_index('datetime').resample(
+            self.frequence).apply({'price': 'ohlc', 'volume': 'last'}).dropna()
+        data.columns = data.columns.droplevel(0)
+
+        data = data.assign(volume=data.volume.diff(), code=self.code)
+        data = data.reset_index().set_index(['datetime', 'code'])
+
+        self.acc.on_price_change(self.code, self.latest_price[self.code])
+        # .loc[:, ['open', 'high', 'low', 'close', 'volume', 'tradetime']]
+        now = datetime.datetime.now()
+        if now.hour == 20 and now.minute == 59 and now.second < 10:
+            self.daily_func()
+            time.sleep(10)
+
+        self.running_time = self.new_data['datetime']
+        self.upcoming_data(data.iloc[-1])
+
+    def tick_callback(self, a, b, c, body):
+        pass
+
+
     def callback(self, a, b, c, body):
         """在strategy的callback中,我们需要的是
 
@@ -351,6 +440,7 @@ class QAStrategyCTABase():
         self.new_data = json.loads(str(body, encoding='utf-8'))
         self.latest_price[self.code] = self.new_data['close']
         if self.dt != str(self.new_data['datetime'])[0:16]:
+            # [0:16]是分钟线位数
             print('update!!!!!!!!!!!!')
             self.dt = str(self.new_data['datetime'])[0:16]
             self.isupdate = True
