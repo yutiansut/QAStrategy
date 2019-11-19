@@ -83,11 +83,13 @@ class QAStrategyCTABase():
     def _debug_sim(self):
 
         self.running_mode = 'sim'
-
-        self._old_data = QA.QA_fetch_get_future_min('tdx', self.code.upper(), QA.QA_util_get_last_day(
-            QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), self.frequence)[:-1].set_index(['datetime', 'code'])
-        self._old_data = self._old_data.assign(volume=self._old_data.trade).loc[:, [
-            'open', 'high', 'low', 'close', 'volume']]
+        if self.frequence.endswith('min'):
+            self._old_data = QA.QA_fetch_get_future_min('tdx', self.code.upper(), QA.QA_util_get_last_day(
+                QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), self.frequence)[:-1].set_index(['datetime', 'code'])
+            self._old_data = self._old_data.assign(volume=self._old_data.trade).loc[:, [
+                'open', 'high', 'low', 'close', 'volume']]
+        else:
+            pass
 
         self.database = pymongo.MongoClient(mongo_ip).QAREALTIME
 
