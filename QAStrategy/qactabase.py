@@ -94,8 +94,7 @@ class QAStrategyCTABase():
             self._old_data = self._old_data.assign(volume=self._old_data.trade).loc[:, [
                 'open', 'high', 'low', 'close', 'volume']]
         else:
-            self._old_data = pd.DataFrame([], columns=[
-                'open', 'high', 'low', 'close', 'volume'], index=['datetime', 'code'])
+            self._old_data = pd.DataFrame()
 
         self.database = pymongo.MongoClient(mongo_ip).QAREALTIME
 
@@ -402,6 +401,7 @@ class QAStrategyCTABase():
         #     self.isupdate = True
 
 
+
         if len(self._cached_data) > 3*self._num_cached:
             # 控制缓存数据量
             self._cached_data = self._cached_data[self._num_cached:]
@@ -422,7 +422,10 @@ class QAStrategyCTABase():
             time.sleep(10)
 
         self.running_time = self.new_data['datetime']
-        self.upcoming_data(data.iloc[-1])
+        if self.dt != data.index.iloc[-1]:
+            self.isupdate = True
+            self.dt = data.index.iloc[-1]
+        self.upcoming_data(data.tail(1))
 
     def tick_callback(self, a, b, c, body):
         pass
