@@ -339,7 +339,7 @@ class QAStrategyCTABase():
         Arguments:
             new_bar {json} -- [description]
         """
-        if len(self._old_data)>0:
+        if len(self._old_data)> 0:
             self._market_data = pd.concat([self._old_data, new_bar])
         else:
             self._market_data = new_bar
@@ -351,7 +351,7 @@ class QAStrategyCTABase():
 
         self.update_account()
         self.positions.on_price_change(float(self.latest_price[self.code]))
-        self.on_bar(self.new_data)
+        self.on_bar(json.loads(new_bar.to_json(orient='records'))[0])
 
     def ind2str(self, ind, ind_type):
         z = ind.tail(1).reset_index().to_dict(orient='records')[0]
@@ -422,9 +422,10 @@ class QAStrategyCTABase():
             time.sleep(10)
 
         self.running_time = self.new_data['datetime']
-        if self.dt != data.index.iloc[-1]:
+        #print(data.iloc[-1].index[0])
+        if self.dt != data.index[-1][0]:
             self.isupdate = True
-            self.dt = data.index.iloc[-1]
+            self.dt = data.index[-1][0]
         self.upcoming_data(data.tail(1))
 
     def tick_callback(self, a, b, c, body):
