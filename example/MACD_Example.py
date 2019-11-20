@@ -37,5 +37,6 @@ class MACD(QAStrategyCTABase):
 
 
 if __name__ == '__main__':
-    MACD(code='RB2001', frequence='1min',
-         strategy_id='1dds1s2d-7902-4a85-adb2-fbac4bb977fe').run()
+    MACD = MACD(code='RB2001', frequence='1min',
+         strategy_id='1dds1s2d-7902-4a85-adb2-fbac4bb977fe'start='2019-10-01', end='2019-11-01') 
+    MACD.run_backtest()

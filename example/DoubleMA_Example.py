@@ -3,7 +3,7 @@ import QUANTAXIS as QA
 import pprint
 
 
-class MACD(QAStrategyCTABase):
+class DMA(QAStrategyCTABase):
 
     def on_bar(self, bar):
 
@@ -37,5 +37,6 @@ class MACD(QAStrategyCTABase):
 
 
 if __name__ == '__main__':
-    MACD(code='RB2001', frequence='1min',
-         strategy_id='1dd8b22d-7902-4a85-adb2-fbac4bb977fe').run()
+    DMA = DMA(code='RB2001', frequence='1min',
+         strategy_id='1dd8b22d-7902-4a85-adb2-fbac4bb977fe', start='2019-10-01', end='2019-11-01') 
+    DMA.run_backtest()

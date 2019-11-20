@@ -39,7 +39,8 @@ class CCI(QAStrategyCTABase):
 if __name__ == '__main__':
 
     strategy = CCI(code='RB2001', frequence='1min',
-                   strategy_id='a3916de0-bd28-4b9c-bea1-94d91f1744ac')
+                   strategy_id='a3916de0-bd28-4b9c-bea1-94d91f1744ac', start='2019-10-01', end='2019-11-01') 
+
     """测试  一般在jupyter中用
 
     
@@ -58,7 +59,7 @@ if __name__ == '__main__':
     """ 模拟
     """
     strategy = CCI(code='rb2001', frequence='1min',
-                   strategy_id='a3916de0-bd28-4b9c-bea1-94d91f1744ac', send_wx=True)
+                   strategy_id='a3916de0-bd28-4b9c-bea1-94d91f1744ac', send_wx=True,)
     strategy.debug_sim()
     strategy.add_subscriber("你的wechatid 在QARPO中获取")
 
@@ -66,3 +67,4 @@ if __name__ == '__main__':
     
     在进程中 用run_sim
     """
+

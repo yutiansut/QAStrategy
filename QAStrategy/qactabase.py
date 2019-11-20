@@ -287,8 +287,7 @@ class QAStrategyCTABase():
             self.sub.callback = self.second_callback
         elif frequence.endswith('tick'):
             self._num_cached = 1
-            self.sub = subscriber(exchange='realtime_min_{}'.format(
-                code), host=data_host, port=data_port, user=data_user, password=data_password)
+            self.sub = subscriber_routing(exchange='CTPX', routing_key=code, host=data_host, port=data_port, user=data_user, password=data_password)
             self.sub.callback = self.tick_callback
 
 
