@@ -94,7 +94,8 @@ class QAStrategyCTABase():
             self._old_data = self._old_data.assign(volume=self._old_data.trade).loc[:, [
                 'open', 'high', 'low', 'close', 'volume']]
         else:
-            pass
+            self._old_data = pd.DataFrame([], columns=[
+                'open', 'high', 'low', 'close', 'volume'], index=['datetime', 'code'])
 
         self.database = pymongo.MongoClient(mongo_ip).QAREALTIME
 
@@ -350,7 +351,7 @@ class QAStrategyCTABase():
             self.isupdate = False
 
         self.update_account()
-        self.positions.on_price_change(float(self.new_data['close']))
+        self.positions.on_price_change(float(self.latest_price[self.code]))
         self.on_bar(self.new_data)
 
     def ind2str(self, ind, ind_type):
@@ -407,7 +408,7 @@ class QAStrategyCTABase():
 
         data= pd.DataFrame(self._cached_data).loc[:,['datetime','last_price', 'volume']]
         data = data.assign(datetime= pd.to_datetime(data.datetime)).set_index('datetime').resample(
-            self.frequence).apply({'price': 'ohlc', 'volume': 'last'}).dropna()
+            self.frequence).apply({'last_price': 'ohlc', 'volume': 'last'}).dropna()
         data.columns = data.columns.droplevel(0)
 
         data = data.assign(volume=data.volume.diff(), code=self.code)
