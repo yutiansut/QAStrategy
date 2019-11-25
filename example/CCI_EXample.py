@@ -19,14 +19,15 @@ class CCI(QAStrategyCTABase):
                 self.send_order('BUY', 'OPEN', price=bar['close'], volume=1)
 
             if self.positions.volume_short > 0:
-                self.send_order('SELL', 'CLOSE', price=bar['close'], volume=1)
+                self.send_order('BUY', 'CLOSE', price=bar['close'], volume=1)
 
-        elif res.CCI[-1] > 100:
+        else:
             print('SHORT')
             if self.positions.volume_short == 0:
                 self.send_order('SELL', 'OPEN', price=bar['close'], volume=1)
             if self.positions.volume_long > 0:
-                self.send_order('BUY', 'CLOSE', price=bar['close'], volume=1)
+                self.send_order('SELL', 'CLOSE', price=bar['close'], volume=1)
+
 
     def cci(self,):
         return QA.QA_indicator_CCI(self.market_data, 61)

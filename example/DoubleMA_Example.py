@@ -19,14 +19,14 @@ class DMA(QAStrategyCTABase):
                 self.send_order('BUY', 'OPEN', price=bar['close'], volume=1)
 
             if self.positions.volume_short > 0:
-                self.send_order('SELL', 'CLOSE', price=bar['close'], volume=1)
+                self.send_order('BUY', 'CLOSE', price=bar['close'], volume=1)
 
         else:
             print('SHORT')
             if self.positions.volume_short == 0:
                 self.send_order('SELL', 'OPEN', price=bar['close'], volume=1)
             if self.positions.volume_long > 0:
-                self.send_order('BUY', 'CLOSE', price=bar['close'], volume=1)
+                self.send_order('SELL', 'CLOSE', price=bar['close'], volume=1)
 
     def ma(self,):
         return QA.QA_indicator_MA(self.market_data, 2, 5)
