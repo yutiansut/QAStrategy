@@ -345,7 +345,7 @@ class QAStrategyCTABase():
             new_bar {json} -- [description]
         """
         if len(self._old_data)> 0:
-            self._market_data = pd.concat([self._old_data, new_bar])
+            self._market_data = pd.concat([self._old_data, new_bar], sort=False)
         else:
             self._market_data = new_bar
         # QA.QA_util_log_info(self._market_data)
