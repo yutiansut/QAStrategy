@@ -7,7 +7,6 @@ import threading
 import time
 import copy
 import uuid
-
 import pandas as pd
 import pymongo
 import requests
@@ -29,7 +28,7 @@ class QAStrategyCTABase():
                  start='2019-01-01', end='2019-10-21', init_cash=1000000, send_wx=False,
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
-                 taskid=None, mongo_ip=mongo_ip):
+                 taskid=None, mongo_ip=mongo_ip, model= py):
 
         self.trade_host = trade_host
 
@@ -61,6 +60,7 @@ class QAStrategyCTABase():
         self.latest_price = {}
 
         self.isupdate = False
+        self.model = model
         self.new_data = {}
         self._systemvar = {}
         self._signal = []
@@ -109,7 +109,7 @@ class QAStrategyCTABase():
                                      port=self.trade_port, user=self.trade_user, password=self.trade_password)
 
         self.subscribe_data(self.code.lower(), self.frequence, self.data_host,
-                            self.data_port, self.data_user, self.data_password)
+                            self.data_port, self.data_user, self.data_password, self.model)
 
         self.database.strategy_schedule.job_control.update(
             {'strategy_id': self.strategy_id},
@@ -142,6 +142,7 @@ class QAStrategyCTABase():
         except:
             pass
 
+
     def debug(self):
         self.running_mode = 'backtest'
         self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
@@ -157,21 +158,23 @@ class QAStrategyCTABase():
         data = QA.QA_quotation(self.code.upper(), self.start, self.end, source=QA.DATASOURCE.MONGO,
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
 
-        def x1(item):
-            # print(data)
-            self.latest_price[item.name[1]] = item['close']
-            if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
-                self.on_dailyclose()
-                self.on_dailyopen()
-                if self.market_type == QA.MARKET_TYPE.STOCK_CN:
-                    print('backtest: Settle!')
-                    self.acc.settle()
-            self._on_1min_bar()
-            self._market_data.append(item)
-            self.running_time = str(item.name[0])
-            self.on_bar(item)
 
-        data.data.apply(x1, axis=1)
+
+        data.data.apply(self.x1, axis=1)
+   
+    def x1(self,item):
+        # print(data)
+        self.latest_price[item.name[1]] = item['close']
+        if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
+            self.on_dailyclose()
+            self.on_dailyopen()
+            if self.market_type == QA.MARKET_TYPE.STOCK_CN:
+                print('backtest: Settle!')
+                self.acc.settle()
+        self._on_1min_bar()
+        self._market_data.append(item)
+        self.running_time = str(item.name[0])
+        self.on_bar(item)
 
     def debug_t0(self):
         self.running_mode = 'backtest'
@@ -265,7 +268,7 @@ class QAStrategyCTABase():
 
         data.apply(x1, axis=1)
 
-    def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password):
+    def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password, model='py'):
         """[summary]
 
         Arguments:
@@ -274,9 +277,13 @@ class QAStrategyCTABase():
         """
 
         if frequence.endswith('min'):
+            if model == 'py'
 
             self.sub = subscriber(exchange='realtime_{}_{}'.format(
                 frequence, code), host=data_host, port=data_port, user=data_user, password=data_password)
+            elif model == 'rust':
+                self.sub = subscriber_routing(exchange='realtime_{}'.format(
+                    code), routing_key = frequence, host=data_host, port=data_port, user=data_user, password=data_password)
             self.sub.callback = self.callback
         elif frequence.endswith('s'):
 
