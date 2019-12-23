@@ -28,7 +28,7 @@ class QAStrategyCTABase():
                  start='2019-01-01', end='2019-10-21', init_cash=1000000, send_wx=False,
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
-                 taskid=None, mongo_ip=mongo_ip, model= py):
+                 taskid=None, mongo_ip=mongo_ip, model= 'py'):
 
         self.trade_host = trade_host
 
@@ -277,10 +277,9 @@ class QAStrategyCTABase():
         """
 
         if frequence.endswith('min'):
-            if model == 'py'
-
-            self.sub = subscriber(exchange='realtime_{}_{}'.format(
-                frequence, code), host=data_host, port=data_port, user=data_user, password=data_password)
+            if model == 'py':
+                self.sub = subscriber(exchange='realtime_{}_{}'.format(
+                    frequence, code), host=data_host, port=data_port, user=data_user, password=data_password)
             elif model == 'rust':
                 self.sub = subscriber_routing(exchange='realtime_{}'.format(
                     code), routing_key = frequence, host=data_host, port=data_port, user=data_user, password=data_password)
