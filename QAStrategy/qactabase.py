@@ -511,6 +511,10 @@ class QAStrategyCTABase():
         #raise NotImplementedError
         if len(self._systemvar.keys()) > 0:
             self._signal.append(copy.deepcopy(self._systemvar))
+        try:
+          self.on_1min_bar()
+        except:
+          pass
 
     def on_1min_bar(self):
         raise NotImplementedError
