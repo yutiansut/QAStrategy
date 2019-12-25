@@ -29,7 +29,16 @@ class QAStrategyCTABase():
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                  taskid=None, mongo_ip=mongo_ip, model= 'py'):
+        """
+        code 可以传入单个标的 也可以传入一组标的(list)
+        会自动基于code来判断是什么市场
 
+        TODO: 支持多个市场同时存在
+
+
+
+
+        """
         self.trade_host = trade_host
 
         self.code = code
@@ -107,9 +116,12 @@ class QAStrategyCTABase():
 
         self.pub = publisher_routing(exchange='QAORDER_ROUTER', host=self.trade_host,
                                      port=self.trade_port, user=self.trade_user, password=self.trade_password)
-
-        self.subscribe_data(self.code.lower(), self.frequence, self.data_host,
-                            self.data_port, self.data_user, self.data_password, self.model)
+        if isinstance(self.code, str):
+            self.subscribe_data(self.code.lower(), self.frequence, self.data_host,
+                                self.data_port, self.data_user, self.data_password, self.model)
+        else:
+            self.subscribe_multi(self.code.lower(), self.frequence, self.data_host,
+                                self.data_port, self.data_user, self.data_password, self.model)
 
         self.database.strategy_schedule.job_control.update(
             {'strategy_id': self.strategy_id},
@@ -297,13 +309,19 @@ class QAStrategyCTABase():
             self.sub.callback = self.tick_callback
 
 
-    def subscribe_multi(self, codelist, frequence, data_host, data_port, data_user, data_password):
-
-        self.sub = subscriber_topic(exchange='realtime_{}'.format(
-            frequence), host=data_host, port=data_port, user=data_user, password=data_password)
-        for item in codelist:
-            self.sub.add_sub(exchange='realtime_{}'.format(
-                frequence), routing_key=item)
+    def subscribe_multi(self, codelist, frequence, data_host, data_port, data_user, data_password, model='py'):
+        if model == 'rust':
+            self.sub = subscriber_routing(exchange='realtime_{}'.format(
+                codelist[0]), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
+            for item in codelist[1:]:
+                self.sub.add_sub(exchange='realtime_{}'.format(
+                    item), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
+        elif model == 'py':
+            self.sub = subscriber_routing(exchange='realtime_{}'.format(
+                codelist[0]), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
+            for item in codelist[1:]:
+                self.sub.add_sub(exchange='realtime_{}'.format(
+                    item), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
         self.sub.callback = self.callback
 
     @property
@@ -435,6 +453,12 @@ class QAStrategyCTABase():
 
     def tick_callback(self, a, b, c, body):
         pass
+
+    def get_code_marketdata(self, code):
+        return self.market_data.loc[(slice(None), code), :]
+
+    def get_current_marketdata(self):
+        return self.market_data.loc[(self.running_time, slice(None)), :]
 
 
     def callback(self, a, b, c, body):
