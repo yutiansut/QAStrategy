@@ -19,7 +19,7 @@ import QUANTAXIS as QA
 from QUANTAXIS.QAARP import QA_Risk, QA_User
 from QUANTAXIS.QAEngine.QAThreadEngine import QA_Thread
 from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT, ORDER_DIRECTION
-from QAPUBSUB.consumer import subscriber_topic
+from QAPUBSUB.consumer import subscriber_topic,  subscriber_routing
 from QAPUBSUB.producer import publisher_routing
 from QAStrategy.qactabase import QAStrategyCTABase
 from QIFIAccount import QIFI_Account
@@ -28,12 +28,12 @@ from QIFIAccount import QIFI_Account
 class QAStrategyStockBase(QAStrategyCTABase):
 
     def __init__(self, code=['000001'], frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
-                 start='2019-01-01', end='2019-10-21', send_wx=False,
+                 start='2019-01-01', end='2019-10-21', send_wx=False, market_type='stock_cn',
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                  taskid=None, mongo_ip=mongo_ip):
         super().__init__(code=code, frequence=frequence, strategy_id=strategy_id, risk_check_gap=risk_check_gap, portfolio=portfolio,
-                         start=start, end=end,send_wx=send_wx,
+                         start=start, end=end, send_wx=send_wx,
                          data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                          trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                          taskid=taskid, mongo_ip=mongo_ip)
@@ -48,6 +48,7 @@ class QAStrategyStockBase(QAStrategyCTABase):
             code {[type]} -- [description]
             frequence {[type]} -- [description]
         """
+        
         self.sub = subscriber_topic(exchange='realtime_stock_{}'.format(
             frequence), host=data_host, port=data_port, user=data_user, password=data_password, routing_key='')
         for item in code:
@@ -136,12 +137,6 @@ class QAStrategyStockBase(QAStrategyCTABase):
         while True:
             pass
 
-
-    def get_code_marketdata(self, code):
-        return self.market_data.loc[(slice(None), code), :]
-
-    def get_current_marketdata(self):
-        return self.market_data.loc[(self.running_time, slice(None)), :]
 
     def debug(self):
         self.running_mode = 'backtest'

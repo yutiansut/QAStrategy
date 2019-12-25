@@ -1,6 +1,7 @@
-from QAStrategy import QAStrategyCTABase
-import QUANTAXIS as QA
 import pprint
+
+import QUANTAXIS as QA
+from QAStrategy import QAStrategyCTABase
 
 
 class MACD(QAStrategyCTABase):
@@ -17,16 +18,15 @@ class MACD(QAStrategyCTABase):
 
             if self.positions.volume_long == 0:
                 self.send_order('BUY', 'OPEN', price=bar['close'], volume=1)
-
             if self.positions.volume_short > 0:
-                self.send_order('SELL', 'CLOSE', price=bar['close'], volume=1)
+                self.send_order('BUY', 'CLOSE', price=bar['close'], volume=1)
 
         else:
             print('SHORT')
             if self.positions.volume_short == 0:
                 self.send_order('SELL', 'OPEN', price=bar['close'], volume=1)
             if self.positions.volume_long > 0:
-                self.send_order('BUY', 'CLOSE', price=bar['close'], volume=1)
+                self.send_order('SELL', 'CLOSE', price=bar['close'], volume=1)
 
     def macd(self,):
         return QA.QA_indicator_MACD(self.market_data)
@@ -37,5 +37,6 @@ class MACD(QAStrategyCTABase):
 
 
 if __name__ == '__main__':
-    MACD(code='RB2001', frequence='1min',
-         strategy_id='1dds1s2d-7902-4a85-adb2-fbac4bb977fe').run()
+    MACD = MACD(code='rb2005', frequence='1min', data_host='192.168.2.118', mongo_ip='192.168.2.118', trade_host='192.168.2.118', send_wx=True,
+                strategy_id='1dds1s2d-7902-4a85-adb2-fbac4bb977fe', start='2019-10-01', end='2019-11-01', model= 'rust')
+    MACD.run_sim()
