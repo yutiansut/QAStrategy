@@ -40,7 +40,7 @@ class Strategy(QAStrategyCTABase):
     def on_bar(self, bar):
 		print(bar)
 
-s = Strategy(code='rb2001', frequence='1min', strategy_id= 'xxx1' ) 
+s = Strategy(code='rb2005', frequence='1min', strategy_id= 'xxx1' ) 
 s.debug_sim()
 
 ```
@@ -58,7 +58,7 @@ class Strategy(QAStrategyCTABase):
     def on_bar(self, bar):
 		print(bar)
 
-s = Strategy(code='rb2001', frequence='1min', strategy_id= 'xxx1', start='2019-10-01', end='2019-11-01') 
+s = Strategy(code='rb2005', frequence='1min', strategy_id= 'xxx1', start='2019-10-01', end='2019-11-01') 
 s.run_backtest()
 ```
 

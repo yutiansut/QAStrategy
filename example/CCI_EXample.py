@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     # """ 模拟
     # """
-    # strategy = CCI(code='rb2001', frequence='1min',
+    # strategy = CCI(code='rb2005', frequence='1min',
     #                strategy_id='a3916de0-bd28-4b9c-bea1-94d91f1744ac', send_wx=True,)
     # strategy.debug_sim()
     # strategy.add_subscriber("你的wechatid 在QARPO中获取")

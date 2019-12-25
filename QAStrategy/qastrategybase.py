@@ -470,4 +470,4 @@ class QAStrategyCTABase():
 
 
 if __name__ == '__main__':
-    QAStrategyCTABase(code='RB2001').run()
+    QAStrategyCTABase(code='rb2005').run()
