@@ -322,20 +322,31 @@ class QAStrategyCTABase():
 
 
     def subscribe_multi(self, codelist, frequence, data_host, data_port, data_user, data_password, model='py'):
-        if model == 'rust':
-            self.sub = subscriber_routing(exchange='realtime_{}'.format(
-                codelist[0]), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
-            for item in codelist[1:]:
-                self.sub.add_sub(exchange='realtime_{}'.format(
-                    item), routing_key=frequence)
-        elif model == 'py':
-            self.sub = subscriber_routing(exchange='realtime_{}'.format(
-                codelist[0].lower()), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
+        if frequence.endswith('min'):
+            if model == 'rust':
+                self.sub = subscriber_routing(exchange='realtime_{}'.format(
+                    codelist[0]), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
+                for item in codelist[1:]:
+                    self.sub.add_sub(exchange='realtime_{}'.format(
+                        item), routing_key=frequence)
+            elif model == 'py':
+                self.sub = subscriber_routing(exchange='realtime_{}'.format(
+                    codelist[0].lower()), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
+                for item in codelist[1:]:
+                    print(item)
+                    self.sub.add_sub(exchange='realtime_{}'.format(
+                        item.lower()), routing_key=frequence)
+            self.sub.callback = self.callback
+        elif frequence.endswith('tick'):
+
+            self._num_cached = 1
+            self.sub = subscriber_routing(exchange='CTPX', routing_key=codelist[0].lower(), host=data_host, port=data_port, user=data_user, password=data_password)
             for item in codelist[1:]:
                 print(item)
-                self.sub.add_sub(exchange='realtime_{}'.format(
-                    item.lower()), routing_key=frequence)
-        self.sub.callback = self.callback
+                self.sub.add_sub(exchange='CTPX', routing_key=item.lower())
+
+            self.sub.callback = self.tick_callback
+
 
     @property
     def old_data(self):
