@@ -74,7 +74,11 @@ class QAStrategyCTABase():
         self._systemvar = {}
         self._signal = []
         self.send_wx = send_wx
-        self.last_order_towards = {'BUY': '', 'SELL': ''}
+        if isinstance(self.code, str):
+
+            self.last_order_towards = {self.code: {'BUY': '', 'SELL': ''}}
+        else:
+            self.last_order_towards = dict(zip(self.code, [{'BUY': '', 'SELL': ''} for i in range(len(self.code))]))
         self.dt = ''
         if isinstance(self.code, str):
             self.market_type = MARKET_TYPE.FUTURE_CN if re.search(
@@ -86,8 +90,8 @@ class QAStrategyCTABase():
         self.bar_order = {'BUY_OPEN': 0, 'SELL_OPEN': 0,
                           'BUY_CLOSE': 0, 'SELL_CLOSE': 0}
 
-        self._num_cached = 120            
-        self._cached_data = []      
+        self._num_cached = 120
+        self._cached_data = []
 
     @property
     def bar_id(self):
@@ -98,10 +102,18 @@ class QAStrategyCTABase():
         self.running_mode = 'sim'
 
         if self.frequence.endswith('min'):
-            self._old_data = QA.QA_fetch_get_future_min('tdx', self.code.upper(), QA.QA_util_get_last_day(
-                QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), self.frequence)[:-1].set_index(['datetime', 'code'])
-            self._old_data = self._old_data.assign(volume=self._old_data.trade).loc[:, [
-                'open', 'high', 'low', 'close', 'volume']]
+
+            if isinstance(self.code, str):
+                self._old_data = QA.QA_fetch_get_future_min('tdx', self.code.upper(), QA.QA_util_get_last_day(
+                    QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), self.frequence)[:-1].set_index(['datetime', 'code'])
+                self._old_data = self._old_data.assign(volume=self._old_data.trade).loc[:, [
+                    'open', 'high', 'low', 'close', 'volume']]
+            else:
+
+                self._old_data = pd.concat([QA.QA_fetch_get_future_min('tdx', item.upper(), QA.QA_util_get_last_day(
+                    QA.QA_util_get_real_date(str(datetime.date.today()))), str(datetime.datetime.now()), self.frequence)[:-1].set_index(['datetime', 'code']) for item in self.code], sort=False)
+                self._old_data = self._old_data.assign(volume=self._old_data.trade).loc[:, [
+                    'open', 'high', 'low', 'close', 'volume']]
         else:
             self._old_data = pd.DataFrame()
 
@@ -120,9 +132,9 @@ class QAStrategyCTABase():
             self.subscribe_data(self.code.lower(), self.frequence, self.data_host,
                                 self.data_port, self.data_user, self.data_password, self.model)
         else:
-            self.subscribe_multi(self.code.lower(), self.frequence, self.data_host,
+            self.subscribe_multi(self.code, self.frequence, self.data_host,
                                 self.data_port, self.data_user, self.data_password, self.model)
-
+        print('start sim')
         self.database.strategy_schedule.job_control.update(
             {'strategy_id': self.strategy_id},
             {'strategy_id': self.strategy_id, 'taskid': self.taskid,
@@ -173,7 +185,7 @@ class QAStrategyCTABase():
 
 
         data.data.apply(self.x1, axis=1)
-   
+
     def x1(self,item):
         # print(data)
         self.latest_price[item.name[1]] = item['close']
@@ -298,7 +310,7 @@ class QAStrategyCTABase():
             self.sub.callback = self.callback
         elif frequence.endswith('s'):
 
-            
+
             import re
             self._num_cached  = 2*int(re.findall(r'\d+',self.frequence)[0])
             self.sub = subscriber_routing(exchange='CTPX', routing_key=code, host=data_host, port=data_port, user=data_user, password=data_password)
@@ -315,13 +327,14 @@ class QAStrategyCTABase():
                 codelist[0]), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
             for item in codelist[1:]:
                 self.sub.add_sub(exchange='realtime_{}'.format(
-                    item), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
+                    item), routing_key=frequence)
         elif model == 'py':
             self.sub = subscriber_routing(exchange='realtime_{}'.format(
-                codelist[0]), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
+                codelist[0].lower()), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
             for item in codelist[1:]:
+                print(item)
                 self.sub.add_sub(exchange='realtime_{}'.format(
-                    item), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
+                    item.lower()), routing_key=frequence)
         self.sub.callback = self.callback
 
     @property
@@ -360,21 +373,26 @@ class QAStrategyCTABase():
         """upcoming_bar :
 
         Arguments:
-            new_bar {json} -- [description]
+            new_bar {pd.DataFrame} -- [description]
         """
+        code = new_bar.index.levels[1][0]
         if len(self._old_data)> 0:
             self._market_data = pd.concat([self._old_data, new_bar], sort=False)
         else:
             self._market_data = new_bar
-        # QA.QA_util_log_info(self._market_data)
+        #QA.QA_util_log_info(self._market_data)
 
         if self.isupdate:
             self.update()
             self.isupdate = False
 
         self.update_account()
-        self.positions.on_price_change(float(self.latest_price[self.code]))
-        self.on_bar(json.loads(new_bar.to_json(orient='records'))[0])
+        if isinstance(self.code, str):
+            self.positions.on_price_change(float(self.latest_price[code]))
+        else:
+            for item in self.code:
+                self.acc.get_position(item).on_price_change(float(self.latest_price[code]))
+        self.on_bar(json.loads(new_bar.reset_index().to_json(orient='records'))[0])
 
     def ind2str(self, ind, ind_type):
         z = ind.tail(1).reset_index().to_dict(orient='records')[0]
@@ -477,16 +495,20 @@ class QAStrategyCTABase():
         """
 
         self.new_data = json.loads(str(body, encoding='utf-8'))
-        self.latest_price[self.code] = self.new_data['close']
+        #print(self.new_data)
+        self.latest_price[self.new_data['code']] = self.new_data['close']
+
         if self.dt != str(self.new_data['datetime'])[0:16]:
             # [0:16]是分钟线位数
             print('update!!!!!!!!!!!!')
             self.dt = str(self.new_data['datetime'])[0:16]
             self.isupdate = True
 
-        self.acc.on_price_change(self.code, self.new_data['close'])
+        self.acc.on_price_change(self.new_data['code'], self.new_data['close'])
         # .loc[:, ['open', 'high', 'low', 'close', 'volume', 'tradetime']]
+
         bar = pd.DataFrame([self.new_data]).set_index(['datetime', 'code'])
+
         now = datetime.datetime.now()
         if now.hour == 20 and now.minute == 59 and now.second < 10:
             self.daily_func()
@@ -496,6 +518,7 @@ class QAStrategyCTABase():
         #     {'strategy_id': self.strategy_id, 'strategy_id': self.strategy_id})
         # self.control_status(res)
         self.running_time = self.new_data['datetime']
+        print('send to upcoming data')
         self.upcoming_data(bar)
 
     def control_status(self, res):
@@ -574,18 +597,28 @@ class QAStrategyCTABase():
         self._systemvar[name] = {'datetime': copy.deepcopy(str(
             self.running_time)), 'value': data, 'format': format}
 
-    def check_order(self, direction, offset):
+    def get_code(self):
+        if isinstance(self.code, str):
+            return self.code
+        else:
+            return self.code[0]
+    def check_order(self, direction, offset, code= None):
         """[summary]
         同方向不开仓  只对期货市场做限制
 
         buy - open
         sell - close
         """
+        if code == None:
+            code = self.get_code()
+
+
         if self.market_type == QA.MARKET_TYPE.FUTURE_CN:
-            if self.last_order_towards[direction] == str(offset):
-                return False
-            else:
-                return True
+
+                if self.last_order_towards[code][direction] == str(offset):
+                    return False
+                else:
+                    return True
         else:
             return True
 
@@ -603,7 +636,9 @@ class QAStrategyCTABase():
         self.send_order(direction=direction, offset=offset,
                         volume=trade_amount, price=trade_price, order_id=QA.QA_util_random_with_topic(self.strategy_id))
 
-    def send_order(self,  direction='BUY', offset='OPEN', price=3925, volume=10, order_id='',):
+    def send_order(self,  direction='BUY', offset='OPEN', price=3925, volume=10, order_id='', code = None):
+        if code == None:
+            code = self.get_code()
 
         towards = eval('ORDER_DIRECTION.{}_{}'.format(direction, offset))
         order_id = str(uuid.uuid4()) if order_id == '' else order_id
@@ -615,19 +650,20 @@ class QAStrategyCTABase():
 
         if self.running_mode == 'sim':
             # 在此处拦截无法下单的订单
-            if (direction == 'BUY' and self.latest_price[self.code] <= price) or (direction == 'SELL' and self.latest_price[self.code] >= price):
+            if (direction == 'BUY' and self.latest_price[code] <= price) or (direction == 'SELL' and self.latest_price[code] >= price):
                 QA.QA_util_log_info(
                     '============ {} SEND ORDER =================='.format(order_id))
                 QA.QA_util_log_info('direction{} offset {} price{} volume{}'.format(
                     direction, offset, price, volume))
 
-                if self.check_order(direction, offset):
-                    self.last_order_towards = {'BUY': '', 'SELL': ''}
-                    self.last_order_towards[direction] = offset
+                if self.check_order(direction, offset, code=code):
+                    #self.last_order_towards = {'BUY': '', 'SELL': ''}
+                    self.last_order_towards[code][direction] = offset
                     now = str(datetime.datetime.now())
 
                     order = self.acc.send_order(
-                        code=self.code, towards=towards, price=price, amount=volume, order_id=order_id)
+                        code=code, towards=towards, price=price, amount=volume, order_id=order_id)
+                    print(order)
                     order['topic'] = 'send_order'
                     self.pub.pub(
                         json.dumps(order), routing_key=self.strategy_id)
@@ -640,7 +676,7 @@ class QAStrategyCTABase():
                             QA.QA_util_log_info(self.subscriber_list)
                             try:
                                 requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
-                                    user, "xiadan_report", self.strategy_id, self.acc.user_id, self.code.lower(), direction, offset, price, volume, now))
+                                    user, "xiadan_report", self.strategy_id, self.acc.user_id, code.lower(), direction, offset, price, volume, now))
                             except Exception as e:
                                 QA.QA_util_log_info(e)
 
@@ -669,7 +705,10 @@ class QAStrategyCTABase():
 
             self.accounts = self.acc.account_msg
             self.orders = self.acc.orders
-            self.positions = self.acc.get_position(self.code)
+            if isinstance(self.code, str):
+                self.positions = self.acc.get_position(self.code)
+            else:
+                pass
             self.trades = self.acc.trades
             self.updatetime = self.acc.dtstr
         elif self.running_mode == 'backtest':
@@ -681,7 +720,7 @@ class QAStrategyCTABase():
     def get_positions(self, code):
         if self.running_mode == 'sim':
             self.update_account()
-            return self.positions
+            return self.acc.get_position(code)
         elif self.running_mode == 'backtest':
             return self.acc.get_position(code)
 
