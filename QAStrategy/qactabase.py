@@ -470,7 +470,8 @@ class QAStrategyCTABase():
         self.upcoming_data(data.tail(1))
 
     def tick_callback(self, a, b, c, body):
-        pass
+        self.new_data = json.loads(str(body, encoding='utf-8'))
+        self.on_tick(self.new_data)
 
     def get_code_marketdata(self, code):
         return self.market_data.loc[(slice(None), code), :]
@@ -552,6 +553,9 @@ class QAStrategyCTABase():
         pass
 
     def on_bar(self, bar):
+        raise NotImplementedError
+
+    def on_tick(self, tick):
         raise NotImplementedError
 
     def _on_1min_bar(self):
