@@ -92,6 +92,7 @@ class QAStrategyCTABase():
 
         self._num_cached = 120
         self._cached_data = []
+        self.user_init()
 
     @property
     def bar_id(self):
@@ -166,6 +167,12 @@ class QAStrategyCTABase():
         except:
             pass
 
+
+    def user_init(self):
+        """
+        用户自定义的init过程
+        """
+        pass
 
     def debug(self):
         self.running_mode = 'backtest'
