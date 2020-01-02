@@ -585,6 +585,14 @@ class QAStrategyCTABase():
         except:
           pass
 
+    def on_deal(self, order):
+        """
+
+        order is a dict type
+        """
+        print('------this is on deal message ------')
+        print(order)
+
     def on_1min_bar(self):
         raise NotImplementedError
 
@@ -691,6 +699,7 @@ class QAStrategyCTABase():
                         json.dumps(order), routing_key=self.strategy_id)
 
                     self.acc.make_deal(order)
+                    self.on_deal(order)
                     self.bar_order['{}_{}'.format(
                         direction, offset)] = self.bar_id
                     if self.send_wx:
@@ -715,9 +724,21 @@ class QAStrategyCTABase():
                     code=self.code, amount=volume, time=self.running_time, towards=towards, price=price)
                 order.trade(order.order_id, order.price,
                             order.amount, order.datetime)
+                self.on_deal(order.to_dict())
             else:
                 self.acc.receive_simpledeal(
                     code=self.code, trade_time=self.running_time, trade_towards=towards, trade_amount=volume, trade_price=price, order_id=order_id, realorder_id=order_id, trade_id=order_id)
+
+                self.on_deal({
+                    'code': self.code,
+                    'trade_time': self.running_time,
+                    'trade_towards': towards, 
+                    'trade_amount':volume, 
+                    'trade_price':price, 
+                    'order_id':order_id, 
+                    'realorder_id':order_id, 
+                    'trade_id':order_id
+                })
             self.positions = self.acc.get_position(self.code)
 
     def update_account(self):
