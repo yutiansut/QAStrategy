@@ -489,6 +489,8 @@ class QAStrategyCTABase():
 
     def tick_callback(self, a, b, c, body):
         self.new_data = json.loads(str(body, encoding='utf-8'))
+        self.latest_price = self.new_data['last_price']
+        self.running_time = self.new_data['datetime']
         self.on_tick(self.new_data)
 
     def get_code_marketdata(self, code):
