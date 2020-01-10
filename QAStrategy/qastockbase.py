@@ -93,9 +93,17 @@ class QAStrategyStockBase(QAStrategyCTABase):
         """
 
         self.new_data = json.loads(str(body, encoding='utf-8'))
+
+        self.latest_price[self.new_data['code']] = self.new_data['close']
+
         self.running_time = self.new_data['datetime']
-        if float(self.new_data['datetime'][-9:]) == 0:
+        if self.dt != str(self.new_data['datetime'])[0:16]:
+            # [0:16]是分钟线位数
+            print('update!!!!!!!!!!!!')
+            self.dt = str(self.new_data['datetime'])[0:16]
             self.isupdate = True
+
+            
         self.acc.on_price_change(self.new_data['code'], self.new_data['close'])
         bar = pd.DataFrame([self.new_data]).set_index(['datetime', 'code']
                                                       ).loc[:, ['open', 'high', 'low', 'close', 'volume']]
