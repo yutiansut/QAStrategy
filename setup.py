@@ -89,7 +89,7 @@ setup(
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
     ],
-    install_requires=['quantaxis', 'qaenv', 'qifiaccount'],
+    install_requires=['quantaxis', 'qaenv', 'qifiaccount','quantaxis_pubsub'],
     entry_points={
     },
     # install_requires=requirements,

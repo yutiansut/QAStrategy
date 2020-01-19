@@ -92,6 +92,7 @@ class QAStrategyCTABase():
 
         self._num_cached = 120
         self._cached_data = []
+        self.user_init()
 
     @property
     def bar_id(self):
@@ -166,6 +167,12 @@ class QAStrategyCTABase():
         except:
             pass
 
+
+    def user_init(self):
+        """
+        用户自定义的init过程
+        """
+        pass
 
     def debug(self):
         self.running_mode = 'backtest'
@@ -446,7 +453,7 @@ class QAStrategyCTABase():
         self.new_data = json.loads(str(body, encoding='utf-8'))
 
         self._cached_data.append(self.new_data)
-        self.latest_price[self.code] = self.new_data['last_price']
+        self.latest_price[self.new_data['symbol']] = self.new_data['last_price']
 
 
         # if len(self._cached_data) == self._num_cached:
@@ -463,10 +470,10 @@ class QAStrategyCTABase():
             self.frequence).apply({'last_price': 'ohlc', 'volume': 'last'}).dropna()
         data.columns = data.columns.droplevel(0)
 
-        data = data.assign(volume=data.volume.diff(), code=self.code)
+        data = data.assign(volume=data.volume.diff(), code=self.new_data['symbol'])
         data = data.reset_index().set_index(['datetime', 'code'])
 
-        self.acc.on_price_change(self.code, self.latest_price[self.code])
+        self.acc.on_price_change(self.new_data['symbol'], self.latest_price[self.new_data['symbol']])
         # .loc[:, ['open', 'high', 'low', 'close', 'volume', 'tradetime']]
         now = datetime.datetime.now()
         if now.hour == 20 and now.minute == 59 and now.second < 10:
@@ -482,6 +489,8 @@ class QAStrategyCTABase():
 
     def tick_callback(self, a, b, c, body):
         self.new_data = json.loads(str(body, encoding='utf-8'))
+        self.latest_price[self.new_data['symbol']] = self.new_data['last_price']
+        self.running_time = self.new_data['datetime']
         self.on_tick(self.new_data)
 
     def get_code_marketdata(self, code):
@@ -577,6 +586,14 @@ class QAStrategyCTABase():
           self.on_1min_bar()
         except:
           pass
+
+    def on_deal(self, order):
+        """
+
+        order is a dict type
+        """
+        print('------this is on deal message ------')
+        print(order)
 
     def on_1min_bar(self):
         raise NotImplementedError
@@ -684,6 +701,7 @@ class QAStrategyCTABase():
                         json.dumps(order), routing_key=self.strategy_id)
 
                     self.acc.make_deal(order)
+                    self.on_deal(order)
                     self.bar_order['{}_{}'.format(
                         direction, offset)] = self.bar_id
                     if self.send_wx:
@@ -705,13 +723,25 @@ class QAStrategyCTABase():
 
             if self.market_type == 'stock_cn':
                 order = self.acc.send_order(
-                    code=self.code, amount=volume, time=self.running_time, towards=towards, price=price)
+                    code=code, amount=volume, time=self.running_time, towards=towards, price=price)
                 order.trade(order.order_id, order.price,
                             order.amount, order.datetime)
+                self.on_deal(order.to_dict())
             else:
                 self.acc.receive_simpledeal(
-                    code=self.code, trade_time=self.running_time, trade_towards=towards, trade_amount=volume, trade_price=price, order_id=order_id, realorder_id=order_id, trade_id=order_id)
-            self.positions = self.acc.get_position(self.code)
+                    code=code, trade_time=self.running_time, trade_towards=towards, trade_amount=volume, trade_price=price, order_id=order_id, realorder_id=order_id, trade_id=order_id)
+
+                self.on_deal({
+                    'code': code,
+                    'trade_time': self.running_time,
+                    'trade_towards': towards, 
+                    'trade_amount':volume, 
+                    'trade_price':price, 
+                    'order_id':order_id, 
+                    'realorder_id':order_id, 
+                    'trade_id':order_id
+                })
+            self.positions = self.acc.get_position(code)
 
     def update_account(self):
         if self.running_mode == 'sim':
@@ -727,7 +757,10 @@ class QAStrategyCTABase():
             self.trades = self.acc.trades
             self.updatetime = self.acc.dtstr
         elif self.running_mode == 'backtest':
-            self.positions = self.acc.get_position(self.code)
+            if isinstance(self.code, str):
+                self.positions = self.acc.get_position(self.code)
+            else:
+                pass
 
     def get_exchange(self, code):
         return self.market_preset.get_exchange(code)
