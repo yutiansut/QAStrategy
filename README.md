@@ -3,6 +3,7 @@
 
 _QAStrategy支持[```QIFI```](http://github.com/quantaxis/qifi)协议_
 
+QAStrategy 的实盘使用天勤的下单网关(Open-Trade-Gateway) 如果是天勤的用户 你可以理解为这是另一个版本的tqsdk
 
 
 QAStrategy 是QUANTAXIS 第一个面向交易员/策略开发者的 用户友好型项目, 致力于降低使用门槛和成本,
