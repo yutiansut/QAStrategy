@@ -122,15 +122,12 @@ def check_order(self, direction, offset, code= None):
 
 ```python
 def on_ordererror(self, direction, offset, price, volume):
+    pass
 ```
-
-
-
-
 =====================================================================================
 
 
-
+一个常见的示例如下  更多的示例可以参考  /example 中的例子
 
 
 ```python
