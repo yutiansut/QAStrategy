@@ -39,7 +39,7 @@ QAStrategy 面向场景, 主要有3个策略基类
 
 5. 支持QAStrategy的周边手机APP即将上线, QACommunity桌面端也是无缝兼容的
 
-书生造反 十年不成  不要总是在想这个难那个不好用了 just do it  现在开始比什么都重要
+> 书生造反 十年不成  不要总是在想这个难那个不好用了 just do it  现在开始比什么都重要 !#
 
 
 ## 如何使用QAStrategy
