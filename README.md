@@ -8,7 +8,6 @@ _QAStrategy支持[```QIFI```](http://github.com/quantaxis/qifi)协议_
 QAStrategy 是QUANTAXIS 第一个面向交易员/策略开发者的 用户友好型项目, 致力于降低使用门槛和成本,
 ```快速编写/测试/模拟你的策略```
 
-
 当你用QAStrategy写完一个回测 你可以无缝的把他直接改成一个实时模拟策略
 
 
@@ -26,6 +25,22 @@ QAStrategy 面向场景, 主要有3个策略基类
 
 
 策略开发者/交易员 只需要面向你自己的主要方向, 选择一个你想要的模板, 继承并开发即可快速在2分钟内完成一个简单策略
+
+
+## 为什么使用QAStrategy
+
+1. 你们根本不会用quantaxis 大部分人还停留在pandas都不会用的阶段 
+
+2. quantaxis 项目过于灵活, 并且文档缺失较多 除非二次开发人员和我自己 都不推荐直接使用quantaxis
+
+3. 你应该专注在策略开发上 而不是先学个python
+
+4. QAStrategy是 无缝兼容回测/模拟/实盘的 你可以较为快速的直接上手
+
+5. 支持QAStrategy的周边手机APP即将上线, QACommunity桌面端也是无缝兼容的
+
+书生造反 十年不成  不要总是在想这个难那个不好用了 just do it  现在开始比什么都重要
+
 
 ## 如何使用QAStrategy
 
