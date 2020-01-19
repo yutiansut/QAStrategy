@@ -33,46 +33,78 @@ QAStrategy 面向场景, 主要有3个策略基类
 
 =====================================================================================
 
-## varibles 
+## varibles  一些变量
 
 - self.market_data 此变量为公共变量 记录策略的历史数据 [回测/实时均可用]
 - self.send_order 此函数为公共函数 但是在不同的基类中, 参数不同
-- self.running_time
+- self.running_time  当前运行时间
 - self.acc 此变量为公共变量 代表了账户
-- self.market_datetime
-- self.bar_id
-- self.latest_price
+- self.market_datetime 
+- self.bar_id  在回测中使用, 及bar的id数
+- self.latest_price  一个json格式的最新价格变量  一般在实时模拟中使用
 - self.isupdate
+- self.dt  当前时间(datetime的缩写)
 
-## functions
-- def plot(self, name, data, format)
-- def get_code(self):
-- def ind2str(self, ind, ind_type)
-- def get_exchange(self, code):
-- def get_positions(self, code):
-- def get_cash(self):
-- def get_code_marketdata(self, code)
-- def get_current_marketdata(self)
-- def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password, model='py'):
-- def debug_currenttick(self, freq):
-- def debug_histick(self, freq):  
-- def debug_t0(self)
-- def debug(self):
-- def run_backtest(self)
-- def run_sim(self)
-- def debug_sim(self)
+## functions  常用函数
 
-## inhert functions
+- 画图函数 self.plot(name, data, format)
+- 获取当前code self.get_code()
+- self.ind2str(ind, ind_type)
+- 获取品种所在的交易所  self.get_exchange(code)
+- 获取品种持仓  self.get_positions(code)
+- 获取当前现金 self.get_cash()
+- 获取某个品种的marketdata  self.get_code_marketdata(code)
+- 获取当前的maretdata切片 self.get_current_marketdata()
+
+
+- 订阅数据 (实时模拟用/ 回测不需要) self.subscribe_data(code, frequence, data_host, data_port, data_user, data_password, model='py')
+- 用当日tick数据进行回测(期货)  self.debug_currenttick(freq)
+- 用历史tick数据进行回测(期货) self.debug_histick(freq)
+- 使用t0模式进行回测  self.debug_t0()
+- 回测(不存储账户数据的模式)  self.debug()
+- 回测(存储账户数据的模式) self.run_backtest()
+- 实时模拟(阻塞形式 不能同时多开很多个) self.run_sim()
+- 实时模拟(非阻塞模式  可以同时开很多个)  self.debug_sim()
+
+## inhert functions  常用继承函数 (一般来说 就是你需要自定义的函数)
+
+
+用户初始化函数
+
+```python
+def user_init(self):
+```
+
+每日开盘前运行的函数 默认是自带的  你可以改写
+```python
+def on_dailyopen(self):
+    pass
+```
+
+每日收盘后运行的函数 默认是自带的  你可以改写
+```python
+def on_dailyclose(self):
+    pass
+```
+
+在你订阅分钟级别的数据的时候,  你需要继承并改写on_bar函数
 
 ```python
 def on_bar(self, bar):
+
     print(bar)
 ```
+
+
+在你订阅tick级别的数据的时候,  你需要继承并改写on_tick函数
+
 ```python
 def on_tick(self, tick):
     pass
 ```
 
+
+强制平仓函数 默认是自带的  你可以改写
 
 ```python
 def force_close(self):
@@ -80,29 +112,19 @@ def force_close(self):
 ```
 
 
-```python
-def on_dailyopen(self):
-    pass
-```
-
-
-```python
-def on_dailyclose(self):
-    pass
-```
-
+在发单后会运行的函数 默认是自带的  你可以改写
 ```python
 def check_order(self, direction, offset, code= None):
     pass
 ```
 
+当发单失败的时候运行的函数 默认是自带的  你可以改写
+
 ```python
 def on_ordererror(self, direction, offset, price, volume):
 ```
 
-```python
-def user_init(self):
-```
+
 
 
 =====================================================================================
