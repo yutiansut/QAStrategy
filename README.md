@@ -31,11 +31,83 @@ QAStrategy 面向场景, 主要有3个策略基类
 
 在每个策略基类中 有一些是 大家共享的公共变量  还有一些是基类自己的变量
 
-1. self.market_data 此变量为公共变量 记录策略的历史数据 [回测/实时均可用]
+=====================================================================================
 
-2. self.send_order 此函数为公共函数 但是在不同的基类中, 参数不同
+## varibles 
 
-3. self.acc 此变量为公共变量
+- self.market_data 此变量为公共变量 记录策略的历史数据 [回测/实时均可用]
+- self.send_order 此函数为公共函数 但是在不同的基类中, 参数不同
+- self.running_time
+- self.acc 此变量为公共变量 代表了账户
+- self.market_datetime
+- self.bar_id
+- self.latest_price
+- self.isupdate
+
+## functions
+- def plot(self, name, data, format)
+- def get_code(self):
+- def ind2str(self, ind, ind_type)
+- def get_exchange(self, code):
+- def get_positions(self, code):
+- def get_cash(self):
+- def get_code_marketdata(self, code)
+- def get_current_marketdata(self)
+- def subscribe_data(self, code, frequence, data_host, data_port, data_user, data_password, model='py'):
+- def debug_currenttick(self, freq):
+- def debug_histick(self, freq):  
+- def debug_t0(self)
+- def debug(self):
+- def run_backtest(self)
+- def run_sim(self)
+- def debug_sim(self)
+
+## inhert functions
+
+```python
+def on_bar(self, bar):
+    print(bar)
+```
+```python
+def on_tick(self, tick):
+    pass
+```
+
+
+```python
+def force_close(self):
+    pass
+```
+
+
+```python
+def on_dailyopen(self):
+    pass
+```
+
+
+```python
+def on_dailyclose(self):
+    pass
+```
+
+```python
+def check_order(self, direction, offset, code= None):
+    pass
+```
+
+```python
+def on_ordererror(self, direction, offset, price, volume):
+```
+
+```python
+def user_init(self):
+```
+
+
+=====================================================================================
+
+
 
 
 
