@@ -93,8 +93,7 @@ QAStrategy是内置在本docker环境中的, 直接调用即可
 - 实时模拟(阻塞形式 不能同时多开很多个) self.run_sim()
 - 实时模拟(非阻塞模式  可以同时开很多个)  self.debug_sim()
 
-## inhert functions  常用继承函数 (一般来说 就是你需要自定义的函数)
-
+## inherit functions  常用继承函数 (一般来说 就是你需要自定义的函数)
 
 用户初始化函数
 
