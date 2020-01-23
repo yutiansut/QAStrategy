@@ -26,22 +26,23 @@ from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 
 class QAStrategyCTABase():
     def __init__(self, code='rb2005', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
-                 start='2019-01-01', end='2019-10-21', init_cash=1000000, send_wx=False,
+                 start='2020-01-01', end='2020-05-21', init_cash=1000000, send_wx=False,
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                  taskid=None, mongo_ip=mongo_ip, model= 'py'):
         """
         code 可以传入单个标的 也可以传入一组标的(list)
         会自动基于code来判断是什么市场
-
         TODO: 支持多个市场同时存在
 
+        self.trade_host 交易所在的eventmq的ip  [挂ORDER_ROUTER的]
+
+        /
 
 
 
         """
         self.trade_host = trade_host
-
         self.code = code
         self.frequence = frequence
         self.strategy_id = strategy_id

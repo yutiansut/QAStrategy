@@ -57,7 +57,7 @@
 
     positions.open_cost_long  # 基于开仓价计算的多头开仓价
 
-    positions.self.open_price_short  # 基于开仓价计算的多头开仓价空头开仓价
+    positions.open_price_short  # 基于开仓价计算的多头开仓价空头开仓价
 
     positions.open_cost_short  # 基于开仓价计算的多头开仓价空头成本
 
