@@ -1,3 +1,4 @@
+import copy
 import datetime
 import json
 import os
@@ -5,17 +6,17 @@ import re
 import sys
 import threading
 import time
-import copy
 import uuid
+
 import pandas as pd
 import pymongo
 import requests
 from qaenv import (eventmq_amqp, eventmq_ip, eventmq_password, eventmq_port,
                    eventmq_username, mongo_ip, mongo_uri)
-
-import QUANTAXIS as QA
 from QAPUBSUB.consumer import subscriber, subscriber_routing, subscriber_topic
 from QAPUBSUB.producer import publisher_routing
+
+import QUANTAXIS as QA
 from QAStrategy.util import QA_data_futuremin_resample
 from QIFIAccount import ORDER_DIRECTION, QIFI_Account
 from QUANTAXIS.QAARP import QA_Risk, QA_User
@@ -24,23 +25,24 @@ from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 
 
 class QAStrategyCTABase():
-    def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
-                 start='2019-01-01', end='2019-10-21', init_cash=1000000, send_wx=False,
+    def __init__(self, code='rb2005', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
+                 start='2020-01-01', end='2020-05-21', init_cash=1000000, send_wx=False,
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                  taskid=None, mongo_ip=mongo_ip, model= 'py'):
         """
         code 可以传入单个标的 也可以传入一组标的(list)
         会自动基于code来判断是什么市场
-
         TODO: 支持多个市场同时存在
 
+        self.trade_host 交易所在的eventmq的ip  [挂ORDER_ROUTER的]
+
+        /
 
 
 
         """
         self.trade_host = trade_host
-
         self.code = code
         self.frequence = frequence
         self.strategy_id = strategy_id
@@ -135,7 +137,7 @@ class QAStrategyCTABase():
         else:
             self.subscribe_multi(self.code, self.frequence, self.data_host,
                                 self.data_port, self.data_user, self.data_password, self.model)
-        print('start sim')
+        print('account {} start sim'.format(self.strategy_id))
         self.database.strategy_schedule.job_control.update(
             {'strategy_id': self.strategy_id},
             {'strategy_id': self.strategy_id, 'taskid': self.taskid,
@@ -184,7 +186,6 @@ class QAStrategyCTABase():
         self.positions = self.acc.get_position(self.code)
 
         print(self.acc)
-
         print(self.acc.market_type)
         data = QA.QA_quotation(self.code.upper(), self.start, self.end, source=QA.DATASOURCE.MONGO,
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
@@ -194,7 +195,6 @@ class QAStrategyCTABase():
         data.data.apply(self.x1, axis=1)
 
     def x1(self,item):
-        # print(data)
         self.latest_price[item.name[1]] = item['close']
         if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
             self.on_dailyclose()
@@ -217,15 +217,10 @@ class QAStrategyCTABase():
                 self.code: 100000},
             market_type=self.market_type, running_environment=RUNNING_ENVIRONMENT.TZERO)
         self.positions = self.acc.get_position(self.code)
-
-        print(self.acc)
-
-        print(self.acc.market_type)
         data = QA.QA_quotation(self.code.upper(), self.start, self.end, source=QA.DATASOURCE.MONGO,
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
 
         def x1(item):
-            # print(data)
             self.latest_price[item.name[1]] = item['close']
             if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
                 self.on_dailyclose()
@@ -340,7 +335,6 @@ class QAStrategyCTABase():
                 self.sub = subscriber_routing(exchange='realtime_{}'.format(
                     codelist[0].lower()), routing_key=frequence, host=data_host, port=data_port, user=data_user, password=data_password)
                 for item in codelist[1:]:
-                    print(item)
                     self.sub.add_sub(exchange='realtime_{}'.format(
                         item.lower()), routing_key=frequence)
             self.sub.callback = self.callback
@@ -349,7 +343,6 @@ class QAStrategyCTABase():
             self._num_cached = 1
             self.sub = subscriber_routing(exchange='CTPX', routing_key=codelist[0].lower(), host=data_host, port=data_port, user=data_user, password=data_password)
             for item in codelist[1:]:
-                print(item)
                 self.sub.add_sub(exchange='CTPX', routing_key=item.lower())
 
             self.sub.callback = self.tick_callback
@@ -368,6 +361,11 @@ class QAStrategyCTABase():
 
     @property
     def market_datetime(self):
+        """计算的market时间点  此api慎用 因为会惰性计算全市场的值
+        
+        Returns:
+            [type] -- [description]
+        """
         return self.market_data.index.levels[0]
 
     @property
@@ -389,6 +387,15 @@ class QAStrategyCTABase():
 
     def upcoming_data(self, new_bar):
         """upcoming_bar :
+
+        在这一步中, 我们主要进行的是
+
+        1. 更新self._market_data
+        2. 更新账户
+        3. 更新持仓
+
+        4. 通知on_bar
+
 
         Arguments:
             new_bar {pd.DataFrame} -- [description]
@@ -516,12 +523,10 @@ class QAStrategyCTABase():
         """
 
         self.new_data = json.loads(str(body, encoding='utf-8'))
-        #print(self.new_data)
         self.latest_price[self.new_data['code']] = self.new_data['close']
 
         if self.dt != str(self.new_data['datetime'])[0:16]:
             # [0:16]是分钟线位数
-            print('update!!!!!!!!!!!!')
             self.dt = str(self.new_data['datetime'])[0:16]
             self.isupdate = True
 
@@ -539,7 +544,6 @@ class QAStrategyCTABase():
         #     {'strategy_id': self.strategy_id, 'strategy_id': self.strategy_id})
         # self.control_status(res)
         self.running_time = self.new_data['datetime']
-        print('send to upcoming data')
         self.upcoming_data(bar)
 
     def control_status(self, res):
