@@ -41,7 +41,7 @@ class CCI(QAStrategyCTABase):
 if __name__ == '__main__':
 
     strategy = CCI(code='RBL8', frequence='1min',
-                   strategy_id='a3916de0-bx8-4b19c-bxxax1-94d91f1744ac', start='2019-10-01', end='2019-11-01') 
+                   strategy_id='a3916de0-bx8-4b19c-bxxax1-94d91f1744ac', start='2020-01-01', end='2020-02-05') 
 
     """测试  一般在jupyter中用
 
