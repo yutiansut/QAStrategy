@@ -161,20 +161,7 @@ class QAStrategyStockBase(QAStrategyCTABase):
         data = QA.QA_quotation(self.code, self.start, self.end, source=QA.DATASOURCE.MONGO,
                                frequence=self.frequence, market=self.market_type, output=QA.OUTPUT_FORMAT.DATASTRUCT)
 
-        def x1(item):
-            # print(data)
-            self._on_1min_bar()
-            self._market_data.append(item)
-
-            if str(item.name[0])[0:10] != str(self.running_time)[0:10]:
-                if self.market_type == QA.MARKET_TYPE.STOCK_CN:
-                    print('backtest: Settle!')
-                    self.acc.settle()
-
-            self.running_time = str(item.name[0])
-            self.on_bar(item)
-
-        data.data.apply(x1, axis=1)
+        data.data.apply(self.x1, axis=1)
 
     def update_account(self):
         if self.running_mode == 'sim':
