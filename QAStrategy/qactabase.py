@@ -774,6 +774,8 @@ class QAStrategyCTABase():
                 pass
             self.trades = self.acc.trades
             self.updatetime = self.acc.dtstr
+
+            self.on_sync()
         elif self.running_mode == 'backtest':
             if isinstance(self.code, str):
                 self.positions = self.acc.get_position(self.code)
