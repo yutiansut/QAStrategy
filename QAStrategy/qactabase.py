@@ -42,6 +42,9 @@ class QAStrategyCTABase():
 
 
         """
+        self.username = 'admin'
+        self.password = 'admin'
+
         self.trade_host = trade_host
         self.code = code
         self.frequence = frequence
@@ -188,7 +191,7 @@ class QAStrategyCTABase():
     def debug(self):
         self.running_mode = 'backtest'
         self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
-        user = QA_User(username="admin", password='admin')
+        user = QA_User(username=self.username, password=self.password)
         port = user.new_portfolio(self.portfolio)
         self.acc = port.new_accountpro(
             account_cookie=self.strategy_id, init_cash=self.init_cash, market_type=self.market_type)
@@ -217,7 +220,7 @@ class QAStrategyCTABase():
     def debug_t0(self):
         self.running_mode = 'backtest'
         self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
-        user = QA_User(username="admin", password='admin')
+        user = QA_User(username=self.username, password=self.password)
         port = user.new_portfolio(self.portfolio)
         self.acc = port.new_accountpro(
             account_cookie=self.strategy_id, init_cash=self.init_cash, init_hold={
@@ -250,7 +253,7 @@ class QAStrategyCTABase():
             'tdx', self.code.upper())
         self.running_mode = 'backtest'
         self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
-        user = QA_User(username="admin", password='admin')
+        user = QA_User(username=self.username, password=self.password)
         port = user.new_portfolio(self.portfolio)
         self.strategy_id = self.strategy_id + \
             'currenttick_{}_{}'.format(str(datetime.date.today()), freq)
@@ -279,7 +282,7 @@ class QAStrategyCTABase():
             'tdx', self.code.upper(), self.start, self.end)
         self.running_mode = 'backtest'
         self.database = pymongo.MongoClient(mongo_ip).QUANTAXIS
-        user = QA_User(username="admin", password='admin')
+        user = QA_User(username=self.username, password=self.password)
         port = user.new_portfolio(self.portfolio)
         self.strategy_id = self.strategy_id + \
             'histick_{}_{}_{}'.format(self.start, self.end, freq)
