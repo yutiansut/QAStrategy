@@ -104,6 +104,26 @@ class QAStrategyCTABase():
     def bar_id(self):
         return len(self._market_data)
 
+
+    @property
+    def BarsSinceEntryLong(self):
+      return self.bar_id - self.bar_order.get('BUY_OPEN', self.bar_id)
+
+    @property
+    def BarsSinceEntryShort(self):
+      return self.bar_id - self.bar_order.get('SELL_OPEN', self.bar_id)
+
+
+    @property
+    def EntryPriceLong(self):
+      code = self.get_code()
+      return self.get_positions(code).open_price_long
+    @property
+    def EntryPriceShort(self):
+      code = self.get_code()
+      return self.get_positions(code).open_price_short
+
+
     def on_sync(self):
         if self.running_mode != 'backtest':
             self.pubacc.pub(json.dumps(self.acc.message),
