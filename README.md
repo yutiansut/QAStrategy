@@ -79,6 +79,10 @@ QAStrategy是内置在本docker环境中的, 直接调用即可
 - self.dt  当前时间(datetime的缩写)
 
 
+[可以在user_init中重写的变量]
+- self.username  此为回测的时候的账户名
+- self.password  此为回测的时候的密码   
+
 ## 一些比较重要的变量[篇幅较长 在首页我就不展开讲 可以移步链接中的教程]
 
 ### [持仓Position](doc/Position.md)

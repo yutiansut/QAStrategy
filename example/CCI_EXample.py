@@ -1,7 +1,6 @@
 from QAStrategy import QAStrategyCTABase
 import QUANTAXIS as QA
 import pprint
-from numba import jit
 
 class CCI(QAStrategyCTABase):
 
