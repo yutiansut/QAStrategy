@@ -203,7 +203,7 @@ class QAStrategyCTABase():
                 print('backtest: Settle!')
                 self.acc.settle()
         self._on_1min_bar()
-        self._market_data.append(item)
+        self._market_data.append(copy.deepcopy(item))
         self.running_time = str(item.name[0])
         self.on_bar(item)
 
@@ -232,7 +232,7 @@ class QAStrategyCTABase():
                     print('backtest: Settle!')
                     self.acc.settle()
             self._on_1min_bar()
-            self._market_data.append(item)
+            self._market_data.append(copy.deepcopy(item))
             self.running_time = str(item.name[0])
             self.on_bar(item)
 
@@ -260,7 +260,7 @@ class QAStrategyCTABase():
                 self.on_dailyclose()
                 self.on_dailyopen()
             self._on_1min_bar()
-            self._market_data.append(item)
+            self._market_data.append(copy.deepcopy(item))
             self.running_time = str(item.name[0])
             self.on_bar(item)
 
@@ -288,7 +288,7 @@ class QAStrategyCTABase():
                 self.on_dailyclose()
                 self.on_dailyopen()
             self._on_1min_bar()
-            self._market_data.append(item)
+            self._market_data.append(copy.deepcopy(item))
             self.running_time = str(item.name[0])
             self.on_bar(item)
 
