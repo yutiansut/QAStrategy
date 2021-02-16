@@ -16,7 +16,7 @@ from qaenv import (eventmq_amqp, eventmq_ip, eventmq_password, eventmq_port,
 
 import QUANTAXIS as QA
 from QAPUBSUB.consumer import subscriber, subscriber_routing, subscriber_topic
-from QAPUBSUB.producer import publisher_routing
+from QAPUBSUB.producer import publisher_routing, publisher_topic
 from QAStrategy.util import QA_data_futuremin_resample
 from QIFIAccount import ORDER_DIRECTION, QIFI_Account
 from QUANTAXIS.QAARP import QA_Risk, QA_User
@@ -26,7 +26,7 @@ from QUANTAXIS.QAUtil.QAParameter import MARKET_TYPE, RUNNING_ENVIRONMENT
 
 class QAStrategyCTABase():
     def __init__(self, code='rb1905', frequence='1min', strategy_id='QA_STRATEGY', risk_check_gap=1, portfolio='default',
-                 start='2019-01-01', end='2019-10-21', init_cash=1000000, send_wx = False,
+                 start='2019-01-01', end='2019-10-21', init_cash=1000000, send_wx=False,
                  data_host=eventmq_ip, data_port=eventmq_port, data_user=eventmq_username, data_password=eventmq_password,
                  trade_host=eventmq_ip, trade_port=eventmq_port, trade_user=eventmq_username, trade_password=eventmq_password,
                  taskid=None, mongo_ip=mongo_ip):
@@ -103,6 +103,9 @@ class QAStrategyCTABase():
         self.pub = publisher_routing(exchange='QAORDER_ROUTER', host=self.trade_host,
                                      port=self.trade_port, user=self.trade_user, password=self.trade_password)
 
+        self.pubacc = publisher_topic(exchange='QAAccount', host=self.trade_host,
+                                      port=self.trade_port, user=self.trade_user, password=self.trade_password)
+
         self.subscribe_data(self.code.lower(), self.frequence, self.data_host,
                             self.data_port, self.data_user, self.data_password)
 
@@ -136,6 +139,11 @@ class QAStrategyCTABase():
             QA_Rank(self.acc).send()
         except:
             pass
+
+    def on_sync(self):
+        if self.running_mode != 'backtest':
+            self.pubacc.pub(json.dumps(self.acc.message),
+                            routing_key=self.strategy_id)
 
     def debug(self):
         self.running_mode = 'backtest'

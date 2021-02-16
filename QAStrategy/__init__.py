@@ -1,4 +1,4 @@
-__version__ = '0.0.19'
+__version__ = '0.0.24'
 __author__ = 'yutiansut'
 
 
