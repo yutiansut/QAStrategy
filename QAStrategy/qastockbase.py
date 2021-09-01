@@ -217,20 +217,7 @@ class QAStrategyStockBase(QAStrategyCTABase):
 
                 self.acc.make_deal(order)
                 self.bar_order['{}_{}'.format(direction, offset)] = self.bar_id
-                if self.send_wx:
-                    for user in self.subscriber_list:
-                        QA.QA_util_log_info(self.subscriber_list)
-                        try:
-                            "oL-C4w2WlfyZ1vHSAHLXb2gvqiMI"
-                            """http://www.yutiansut.com/signal?user_id=oL-C4w1HjuPRqTIRcZUyYR0QcLzo&template=xiadan_report&\
-                                        strategy_id=test1&realaccount=133496&code=rb1910&order_direction=BUY&\
-                                        order_offset=OPEN&price=3600&volume=1&order_time=20190909
-                            """
 
-                            requests.post('http://www.yutiansut.com/signal?user_id={}&template={}&strategy_id={}&realaccount={}&code={}&order_direction={}&order_offset={}&price={}&volume={}&order_time={}'.format(
-                                user, "xiadan_report", self.strategy_id, self.acc.user_id, code, direction, offset, price, volume, now))
-                        except Exception as e:
-                            QA.QA_util_log_info(e)
 
             else:
                 QA.QA_util_log_info('failed in ORDER_CHECK')
